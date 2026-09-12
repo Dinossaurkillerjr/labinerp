@@ -1,0 +1,179 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------ */
+/* Design System tokens — "Dub" style reference (see DESIGN.md)        */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  /* Palette — exposed as utilities (bg-canvas-white, text-fog, ...) */
+  --color-canvas-white: #ffffff;
+  --color-paper-mist: #f5f5f5;
+  --color-ash: #e5e5e5;
+  --color-smoke: #d4d4d4;
+  --color-pebble: #c8c8c8;
+  --color-midnight-ink: #0a0a0a;
+  --color-charcoal: #171717;
+  --color-graphite: #262626;
+  --color-slate: #404040;
+  --color-steel: #525252;
+  --color-fog: #737373;
+  --color-silver: #a3a3a3;
+  --color-electric-blue: #2563eb;
+  --color-deep-sapphire: #1e40af;
+  --color-soft-mint: #dcfce7;
+  --color-vivid-green: #16a34a;
+  --color-tangerine: #ea580c;
+  --color-lavender: #7c3aed;
+  --color-sidebar-active: #dbeaff;
+  --color-primary-action-fill: #000000;
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+
+  --text-caption: 11px;
+  --text-caption--line-height: 1.5;
+  --text-body: 14px;
+  --text-body--line-height: 1.43;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 1.5;
+  --text-body-xl: 18px;
+  --text-body-xl--line-height: 1.56;
+  --text-subheading: 20px;
+  --text-subheading--line-height: 1.4;
+  --text-heading-sm: 24px;
+  --text-heading-sm--line-height: 1.33;
+  --text-heading: 30px;
+  --text-heading--line-height: 1.38;
+  --text-heading-lg: 36px;
+  --text-heading-lg--line-height: 1.11;
+  --text-display: 48px;
+  --text-display--line-height: 1;
+
+  /* Radius — named per Design System (tags/cards/inputs/buttons/largeCards) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-4xl: 24px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+  --shadow-sm: rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px;
+  --shadow-sm-2: rgba(0, 0, 0, 0.2) 0px 2px 6px 0px inset;
+  --shadow-subtle-2: rgba(0, 0, 0, 0.1) 0px 0px 0px 4px;
+  --shadow-md: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px;
+  --shadow-lg: rgba(0, 0, 0, 0.09) 0px 20px 20px 0px;
+  --shadow-subtle-3: rgb(255, 255, 255) 0px 0px 0px 3px, rgb(0, 0, 0) 0px 0px 0px 4px;
+
+  /* Layout */
+  --breakpoint-content: 1200px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+}
+
+/* Semantic tokens — light theme only (Design System theme: light) */
+:root {
+  --background: var(--color-canvas-white);
+  --foreground: var(--color-charcoal);
+  --card: var(--color-canvas-white);
+  --card-foreground: var(--color-charcoal);
+  --popover: var(--color-canvas-white);
+  --popover-foreground: var(--color-charcoal);
+  --primary: var(--color-primary-action-fill);
+  --primary-foreground: var(--color-canvas-white);
+  --secondary: var(--color-paper-mist);
+  --secondary-foreground: var(--color-charcoal);
+  --muted: var(--color-paper-mist);
+  --muted-foreground: var(--color-fog);
+  --accent: var(--color-paper-mist);
+  --accent-foreground: var(--color-charcoal);
+  --destructive: #dc2626;
+  --destructive-foreground: var(--color-canvas-white);
+  --success: var(--color-soft-mint);
+  --success-foreground: #166534;
+  --warning: #fef3c7;
+  --warning-foreground: #92400e;
+  --border: var(--color-ash);
+  --input: var(--color-midnight-ink);
+  --ring: var(--color-electric-blue);
+  --chart-1: var(--color-electric-blue);
+  --chart-2: var(--color-vivid-green);
+  --chart-3: var(--color-tangerine);
+  --chart-4: var(--color-lavender);
+  --chart-5: var(--color-deep-sapphire);
+  --radius: 8px;
+  --sidebar: var(--color-canvas-white);
+  --sidebar-foreground: var(--color-charcoal);
+  --sidebar-primary: var(--color-electric-blue);
+  --sidebar-primary-foreground: var(--color-canvas-white);
+  --sidebar-accent: var(--color-sidebar-active);
+  --sidebar-accent-foreground: var(--color-charcoal);
+  --sidebar-border: var(--color-ash);
+  --sidebar-ring: var(--color-electric-blue);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground text-body-lg;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer utilities {
+  /* Satoshi substitute per Design System: Inter 500, tight tracking, display-only */
+  .font-display {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+}
