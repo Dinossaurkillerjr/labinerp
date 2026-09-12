@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, ShoppingBag, Package, Users, CheckSquare, PenTool } from "lucide-react";
+import { Plus, ShoppingBag, Receipt, Package, Users, CheckSquare, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,18 +15,11 @@ import { Field } from "@/components/common/field";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/common/currency-input";
 import { DrawerForm, DrawerFormActions } from "@/components/common/drawer-form";
+import { TransactionForm } from "@/components/finance/transaction-form";
 import { toast } from "sonner";
 import * as React from "react";
 
-const QUICK_ACTIONS = [
-  { key: "venda", label: "Nova venda", icon: ShoppingBag },
-  { key: "produto", label: "Novo produto", icon: Package },
-  { key: "contato", label: "Novo contato", icon: Users },
-  { key: "tarefa", label: "Nova tarefa", icon: CheckSquare },
-  { key: "nota", label: "Nova nota no canvas", icon: PenTool },
-] as const;
-
-function QuickCreateForm({ label, onDone }: { label: string; onDone: () => void }) {
+function PlaceholderQuickCreateForm({ label, onDone }: { label: string; onDone: () => void }) {
   const [nome, setNome] = React.useState("");
   const [valor, setValor] = React.useState(0);
 
@@ -58,11 +51,19 @@ function QuickCreateForm({ label, onDone }: { label: string; onDone: () => void 
 export function QuickActionButton() {
   const { openDrawer, closeDrawer } = useUI();
 
-  function handleSelect(key: string, label: string) {
+  function openPlaceholder(label: string) {
     openDrawer({
       title: label,
       description: "Registro rápido — você pode detalhar depois.",
-      content: <QuickCreateForm label={label} onDone={closeDrawer} />,
+      content: <PlaceholderQuickCreateForm label={label} onDone={closeDrawer} />,
+    });
+  }
+
+  function openFinanceForm(title: string, defaultType: "income" | "expense") {
+    openDrawer({
+      title,
+      description: "Tipo → categoria → dados essenciais → salvar.",
+      content: <TransactionForm defaultType={defaultType} onDone={closeDrawer} />,
     });
   }
 
@@ -76,12 +77,24 @@ export function QuickActionButton() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Criar novo</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {QUICK_ACTIONS.map((action) => (
-          <DropdownMenuItem key={action.key} onSelect={() => handleSelect(action.key, action.label)}>
-            <action.icon />
-            {action.label}
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuItem onSelect={() => openFinanceForm("Nova venda", "income")}>
+          <ShoppingBag /> Nova venda
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openFinanceForm("Novo lançamento", "expense")}>
+          <Receipt /> Nova despesa
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openPlaceholder("Novo produto")}>
+          <Package /> Novo produto
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openPlaceholder("Novo contato")}>
+          <Users /> Novo contato
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openPlaceholder("Nova tarefa")}>
+          <CheckSquare /> Nova tarefa
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openPlaceholder("Nova nota no canvas")}>
+          <PenTool /> Nova nota no canvas
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

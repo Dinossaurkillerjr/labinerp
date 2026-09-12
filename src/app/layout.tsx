@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { UIProvider } from "@/components/providers/ui-provider";
 import { AppShell } from "@/components/layout/app-shell";
+import { FinanceProvider } from "@/lib/finance/finance-provider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -26,9 +27,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <UIProvider>
-          <AppShell>{children}</AppShell>
-        </UIProvider>
+        <FinanceProvider>
+          <UIProvider>
+            <AppShell>{children}</AppShell>
+          </UIProvider>
+        </FinanceProvider>
       </body>
     </html>
   );
