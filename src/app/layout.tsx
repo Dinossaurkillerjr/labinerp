@@ -7,6 +7,7 @@ import { FinanceProvider } from "@/lib/finance/finance-provider";
 import { CatalogProvider } from "@/lib/catalog/catalog-provider";
 import { ContactsProvider } from "@/lib/contacts/contacts-provider";
 import { SalesProvider } from "@/lib/sales/sales-provider";
+import { TasksProvider } from "@/lib/tasks/tasks-provider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -34,9 +35,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <CatalogProvider>
             <ContactsProvider>
               <SalesProvider>
-                <UIProvider>
-                  <AppShell>{children}</AppShell>
-                </UIProvider>
+                <TasksProvider>
+                  <UIProvider>
+                    <AppShell>{children}</AppShell>
+                  </UIProvider>
+                </TasksProvider>
               </SalesProvider>
             </ContactsProvider>
           </CatalogProvider>

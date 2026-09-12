@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, ShoppingBag, Receipt, Package, Users, CheckSquare, PenTool } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,56 +12,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUI } from "@/components/providers/ui-provider";
-import { Field } from "@/components/common/field";
-import { Input } from "@/components/ui/input";
-import { CurrencyInput } from "@/components/common/currency-input";
-import { DrawerForm, DrawerFormActions } from "@/components/common/drawer-form";
 import { TransactionForm } from "@/components/finance/transaction-form";
 import { SaleForm } from "@/components/sales/sale-form";
 import { ProductForm } from "@/components/catalog/product-form";
 import { ContactForm } from "@/components/contacts/contact-form";
-import { toast } from "sonner";
-import * as React from "react";
-
-function PlaceholderQuickCreateForm({ label, onDone }: { label: string; onDone: () => void }) {
-  const [nome, setNome] = React.useState("");
-  const [valor, setValor] = React.useState(0);
-
-  return (
-    <>
-      <DrawerForm>
-        <Field label="Nome">
-          <Input
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder={`Nome ${label.toLowerCase()}`}
-          />
-        </Field>
-        <Field label="Valor" hint="Pode ser ajustado depois.">
-          <CurrencyInput value={valor} onValueChange={setValor} />
-        </Field>
-      </DrawerForm>
-      <DrawerFormActions
-        onCancel={onDone}
-        onSubmit={() => {
-          toast.success(`${label} criado(a) com sucesso.`);
-          onDone();
-        }}
-      />
-    </>
-  );
-}
+import { TaskForm } from "@/components/tasks/task-form";
 
 export function QuickActionButton() {
   const { openDrawer, closeDrawer } = useUI();
-
-  function openPlaceholder(label: string) {
-    openDrawer({
-      title: label,
-      description: "Registro rápido — você pode detalhar depois.",
-      content: <PlaceholderQuickCreateForm label={label} onDone={closeDrawer} />,
-    });
-  }
+  const router = useRouter();
 
   return (
     <DropdownMenu>
@@ -116,10 +76,18 @@ export function QuickActionButton() {
         >
           <Users /> Novo contato
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => openPlaceholder("Nova tarefa")}>
+        <DropdownMenuItem
+          onSelect={() =>
+            openDrawer({
+              title: "Nova tarefa",
+              description: "Só o título é obrigatório.",
+              content: <TaskForm onDone={closeDrawer} />,
+            })
+          }
+        >
           <CheckSquare /> Nova tarefa
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => openPlaceholder("Nova nota no canvas")}>
+        <DropdownMenuItem onSelect={() => router.push("/canvas")}>
           <PenTool /> Nova nota no canvas
         </DropdownMenuItem>
       </DropdownMenuContent>

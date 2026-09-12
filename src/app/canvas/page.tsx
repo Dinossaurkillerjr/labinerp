@@ -1,19 +1,21 @@
-import { PenTool } from "lucide-react";
+"use client";
+
 import { PageHeader } from "@/components/common/page-header";
-import { EmptyState } from "@/components/common/empty-state";
+import { CanvasProvider } from "@/lib/canvas/canvas-provider";
+import { CanvasBoard } from "@/components/canvas/canvas-board";
 
 export default function CanvasPage() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-4">
       <PageHeader
         title="Canvas"
-        description="Espaço livre para criar e organizar ideias."
+        description="Espaço livre para pensar, reunir referências e organizar ideias visualmente."
       />
-      <EmptyState
-        icon={PenTool}
-        title="Canvas infinito chega na Fase 4"
-        description="Um espaço de criação livre para registrar o que você está pensando."
-      />
+      <div className="h-[calc(100vh-220px)] min-h-[520px]">
+        <CanvasProvider>
+          <CanvasBoard />
+        </CanvasProvider>
+      </div>
     </div>
   );
 }

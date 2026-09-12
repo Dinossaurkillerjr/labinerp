@@ -1,4 +1,4 @@
-import { Wallet, ShoppingBag, CheckSquare, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { Wallet, ShoppingBag, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { StatCard } from "@/components/common/stat-card";
 import { BarChart, Sparkline } from "@/components/common/chart-placeholder";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
@@ -17,12 +17,11 @@ import {
   mockSparkline,
   mockRecentSales,
   mockUpcomingPayments,
-  mockPriorityTasks,
   mockAlerts,
   type MockSale,
   type MockPayment,
-  type MockTask,
 } from "@/lib/mock-data";
+import { DashboardTasksStatCard, DashboardPriorityTasksCard } from "@/components/dashboard/dashboard-tasks-summary";
 
 const salesColumns: DataTableColumn<MockSale>[] = [
   { key: "cliente", header: "Cliente", render: (row) => row.cliente },
@@ -43,12 +42,6 @@ const paymentsColumns: DataTableColumn<MockPayment>[] = [
   { key: "valor", header: "Valor", align: "right", render: (row) => row.valor },
 ];
 
-const tasksColumns: DataTableColumn<MockTask>[] = [
-  { key: "titulo", header: "Tarefa", render: (row) => row.titulo },
-  { key: "prioridade", header: "Prioridade", render: (row) => <PriorityBadge priority={row.prioridade} /> },
-  { key: "prazo", header: "Prazo", align: "right", render: (row) => row.prazo },
-];
-
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
@@ -62,7 +55,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Caixa" value={mockKpis.caixa.value} icon={Wallet} trend={mockKpis.caixa.trend} />
         <StatCard label="Vendas" value={mockKpis.vendas.value} icon={ShoppingBag} trend={mockKpis.vendas.trend} />
-        <StatCard label="Tarefas" value={mockKpis.tarefas.value} icon={CheckSquare} trend={mockKpis.tarefas.trend} />
+        <DashboardTasksStatCard />
         <StatCard label="Lucro" value={mockKpis.lucro.value} icon={TrendingUp} trend={mockKpis.lucro.trend} />
         <StatCard label="Despesas" value={mockKpis.despesas.value} icon={TrendingDown} trend={mockKpis.despesas.trend} />
       </div>
@@ -126,14 +119,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Tarefas prioritárias</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DataTable columns={tasksColumns} data={mockPriorityTasks} />
-          </CardContent>
-        </Card>
+        <DashboardPriorityTasksCard />
       </div>
     </div>
   );
