@@ -1,0 +1,26 @@
+import type { Sale } from "./types";
+
+export type SalesState = {
+  sales: Sale[];
+};
+
+export const EMPTY_SALES_STATE: SalesState = { sales: [] };
+
+export type SalesAction =
+  | { type: "HYDRATE"; state: SalesState }
+  | { type: "ADD_SALE"; sale: Sale }
+  | { type: "DELETE_SALE"; id: string };
+
+export function salesReducer(state: SalesState, action: SalesAction): SalesState {
+  switch (action.type) {
+    case "HYDRATE":
+      return action.state;
+
+    case "ADD_SALE":
+      return { ...state, sales: [...state.sales, action.sale] };
+    case "DELETE_SALE":
+      return { ...state, sales: state.sales.filter((s) => s.id !== action.id) };
+    default:
+      return state;
+  }
+}

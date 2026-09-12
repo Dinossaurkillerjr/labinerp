@@ -44,8 +44,8 @@ function todayISO(): string {
   return nowISO().slice(0, 10);
 }
 
-function loadInitialState(): FinanceState {
-  const seeded: FinanceState = {
+function seededState(): FinanceState {
+  return {
     ...EMPTY_FINANCE_STATE,
     transactions: [...SEED_TRANSACTIONS, ...SEED_INSTALLMENT_TRANSACTIONS],
     recurringRules: SEED_RECURRING_RULES,
@@ -59,17 +59,23 @@ function loadInitialState(): FinanceState {
       },
     ],
   };
+}
 
-  if (typeof window === "undefined") return seeded;
-
+/**
+ * Reads whatever was persisted in localStorage, if anything valid is there.
+ * Client-only: must never run during the initial (server-matching) render,
+ * or React's hydration will see a mismatch — see the effect in FinanceProvider.
+ */
+function loadPersistedState(): FinanceState | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seeded;
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as FinanceState;
-    if (!parsed.transactions) return seeded;
+    if (!parsed.transactions) return null;
     return parsed;
   } catch {
-    return seeded;
+    return null;
   }
 }
 
@@ -124,28 +130,43 @@ type FinanceContextValue = {
 const FinanceContext = React.createContext<FinanceContextValue | null>(null);
 
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = React.useReducer(financeReducer, undefined, loadInitialState);
+  // Always starts from the same deterministic seed on both server and client,
+  // so the first client render matches the server-rendered HTML exactly.
+  const [state, dispatch] = React.useReducer(financeReducer, undefined, seededState);
   const hydrated = React.useRef(false);
+  // Gates persistence until after the hydration effect below has run, so we
+  // never clobber real localStorage data with the server-matching seed.
+  const [ready, setReady] = React.useState(false);
 
-  // Generate any missing recurring occurrences once, on first mount.
+  // Client-only, once on mount: pull in whatever was actually persisted (if
+  // anything) and generate any missing recurring occurrences against it —
+  // done together so recurrence generation sees real history, not the seed.
   React.useEffect(() => {
     if (hydrated.current) return;
     hydrated.current = true;
 
+    const persisted = loadPersistedState();
+    const baseState = persisted ?? state;
+
     const horizon = addMonthsToISODate(todayISO(), RECURRENCE_HORIZON_MONTHS);
-    const newTransactions = state.recurringRules.flatMap((rule) =>
-      generateMissingOccurrences(rule, state.transactions, horizon, makeId, nowISO())
+    const newTransactions = baseState.recurringRules.flatMap((rule) =>
+      generateMissingOccurrences(rule, baseState.transactions, horizon, makeId, nowISO())
     );
-    if (newTransactions.length > 0) {
-      dispatch({ type: "ADD_TRANSACTIONS", transactions: newTransactions });
+
+    if (persisted || newTransactions.length > 0) {
+      dispatch({
+        type: "HYDRATE",
+        state: { ...baseState, transactions: [...baseState.transactions, ...newTransactions] },
+      });
     }
+    setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!ready || typeof window === "undefined") return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+  }, [state, ready]);
 
   const categories = React.useMemo<Category[]>(
     () => [...DEFAULT_CATEGORIES, ...state.customCategories],

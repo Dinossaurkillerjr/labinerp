@@ -1,6 +1,5 @@
-import { Users } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
-import { EmptyState } from "@/components/common/empty-state";
+import { ContactsPanel } from "@/components/contacts/contacts-panel";
 
 export default function ContatosPage() {
   return (
@@ -9,11 +8,7 @@ export default function ContatosPage() {
         title="Contatos"
         description="Clientes, fornecedores e parceiros da marca."
       />
-      <EmptyState
-        icon={Users}
-        title="Módulo de contatos chega na Fase 3"
-        description="Um CRM simples, sem a complexidade de um CRM avançado."
-      />
+      <ContactsPanel />
     </div>
   );
 }

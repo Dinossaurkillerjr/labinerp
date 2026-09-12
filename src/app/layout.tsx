@@ -4,6 +4,9 @@ import "./globals.css";
 import { UIProvider } from "@/components/providers/ui-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { FinanceProvider } from "@/lib/finance/finance-provider";
+import { CatalogProvider } from "@/lib/catalog/catalog-provider";
+import { ContactsProvider } from "@/lib/contacts/contacts-provider";
+import { SalesProvider } from "@/lib/sales/sales-provider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -28,9 +31,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <FinanceProvider>
-          <UIProvider>
-            <AppShell>{children}</AppShell>
-          </UIProvider>
+          <CatalogProvider>
+            <ContactsProvider>
+              <SalesProvider>
+                <UIProvider>
+                  <AppShell>{children}</AppShell>
+                </UIProvider>
+              </SalesProvider>
+            </ContactsProvider>
+          </CatalogProvider>
         </FinanceProvider>
       </body>
     </html>

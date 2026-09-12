@@ -60,4 +60,14 @@ describe("financeReducer", () => {
     state = financeReducer(state, { type: "DELETE_TRANSACTION", id: transaction.id });
     expect(state.transactions).toHaveLength(0);
   });
+
+  it("HYDRATE substitui o estado inteiro (usado para carregar dados persistidos após a montagem)", () => {
+    const persisted = {
+      ...EMPTY_FINANCE_STATE,
+      transactions: [makeTransaction({ id: "persisted-1" })],
+    };
+    const state = financeReducer(EMPTY_FINANCE_STATE, { type: "HYDRATE", state: persisted });
+    expect(state.transactions).toHaveLength(1);
+    expect(state.transactions[0].id).toBe("persisted-1");
+  });
 });
