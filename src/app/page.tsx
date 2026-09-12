@@ -1,126 +1,87 @@
-import { Wallet, ShoppingBag, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
-import { StatCard } from "@/components/common/stat-card";
-import { BarChart, Sparkline } from "@/components/common/chart-placeholder";
-import { DataTable, type DataTableColumn } from "@/components/common/data-table";
-import { StatusBadge } from "@/components/common/status-badge";
-import { PriorityBadge } from "@/components/common/priority-badge";
-import { Tag } from "@/components/common/tag";
+"use client";
+
+import * as React from "react";
+import { PeriodSelector } from "@/components/common/period-selector";
+import { Switch } from "@/components/ui/switch";
+import { resolvePeriodRange, type PeriodPreset } from "@/lib/reports/period-range";
+import { useSettings } from "@/lib/settings/settings-provider";
+import { DASHBOARD_WIDGETS } from "@/lib/settings/types";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
-import {
-  mockKpis,
-  mockCashFlow,
-  mockSparkline,
-  mockRecentSales,
-  mockUpcomingPayments,
-  mockAlerts,
-  type MockSale,
-  type MockPayment,
-} from "@/lib/mock-data";
+  CaixaKpiCard,
+  VendasKpiCard,
+  LucroKpiCard,
+  DespesasKpiCard,
+} from "@/components/dashboard/dashboard-kpis";
 import { DashboardTasksStatCard, DashboardPriorityTasksCard } from "@/components/dashboard/dashboard-tasks-summary";
+import {
+  WeeklyCashFlowCard,
+  SalesTrendCard,
+  RecentSalesCard,
+  UpcomingPaymentsCard,
+  AlertsCard,
+} from "@/components/dashboard/dashboard-widgets";
 
-const salesColumns: DataTableColumn<MockSale>[] = [
-  { key: "cliente", header: "Cliente", render: (row) => row.cliente },
-  {
-    key: "canal",
-    header: "Canal",
-    render: (row) => <Tag color={row.canal === "E-commerce" ? "blue" : row.canal === "Instagram" ? "violet" : "green"}>{row.canal}</Tag>,
-  },
-  { key: "valor", header: "Valor", align: "right", render: (row) => row.valor },
-  { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
-  { key: "data", header: "Data", align: "right", render: (row) => row.data },
-];
-
-const paymentsColumns: DataTableColumn<MockPayment>[] = [
-  { key: "descricao", header: "Descrição", render: (row) => row.descricao },
-  { key: "vencimento", header: "Vencimento", render: (row) => row.vencimento },
-  { key: "prioridade", header: "Prioridade", render: (row) => <PriorityBadge priority={row.prioridade} /> },
-  { key: "valor", header: "Valor", align: "right", render: (row) => row.valor },
-];
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function DashboardPage() {
+  const { settings, updateSettings } = useSettings();
+  const [preset, setPreset] = React.useState<PeriodPreset>("mes");
+  const today = todayISO();
+  const range = resolvePeriodRange(preset, today);
+
+  const isHidden = (id: string) => settings.hiddenDashboardWidgets.includes(id);
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-heading text-foreground">Dashboard</h1>
-        <p className="text-body text-muted-foreground">
-          Visão geral da operação da marca.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-heading text-foreground">Dashboard</h1>
+          <p className="text-body text-muted-foreground">
+            Visão geral da operação da marca — {range.label.toLowerCase()}.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-caption text-muted-foreground">
+            Detalhado
+            <Switch
+              checked={settings.dashboardDetailed}
+              onCheckedChange={(checked) => updateSettings({ dashboardDetailed: checked })}
+            />
+          </label>
+          <PeriodSelector value={preset} onChange={setPreset} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <StatCard label="Caixa" value={mockKpis.caixa.value} icon={Wallet} trend={mockKpis.caixa.trend} />
-        <StatCard label="Vendas" value={mockKpis.vendas.value} icon={ShoppingBag} trend={mockKpis.vendas.trend} />
-        <DashboardTasksStatCard />
-        <StatCard label="Lucro" value={mockKpis.lucro.value} icon={TrendingUp} trend={mockKpis.lucro.trend} />
-        <StatCard label="Despesas" value={mockKpis.despesas.value} icon={TrendingDown} trend={mockKpis.despesas.trend} />
+        <CaixaKpiCard range={range} />
+        <VendasKpiCard range={range} />
+        <DashboardTasksStatCard todayISO={today} />
+        <LucroKpiCard range={range} />
+        <DespesasKpiCard range={range} todayISO={today} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Fluxo de caixa da semana</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BarChart data={mockCashFlow} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tendência de vendas</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Sparkline data={mockSparkline} className="h-16 w-full" />
-            <p className="text-caption text-muted-foreground">Últimos 10 dias</p>
-          </CardContent>
-        </Card>
+        {!isHidden("fluxo-caixa") ? <WeeklyCashFlowCard todayISO={today} /> : null}
+        {!isHidden("tendencia-vendas") ? <SalesTrendCard todayISO={today} /> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Últimas vendas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DataTable columns={salesColumns} data={mockRecentSales} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Alertas</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {mockAlerts.map((alert) => (
-              <div key={alert.id} className="flex gap-2.5 rounded-lg bg-paper-mist p-3">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-tangerine" />
-                <div>
-                  <p className="text-body font-medium text-foreground">{alert.titulo}</p>
-                  <p className="text-caption text-muted-foreground">{alert.descricao}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        {!isHidden("ultimas-vendas") ? <RecentSalesCard /> : null}
+        {!isHidden("alertas") ? <AlertsCard todayISO={today} /> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Próximos pagamentos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DataTable columns={paymentsColumns} data={mockUpcomingPayments} />
-          </CardContent>
-        </Card>
-
-        <DashboardPriorityTasksCard />
+        {!isHidden("proximos-pagamentos") ? <UpcomingPaymentsCard /> : null}
+        {!isHidden("tarefas-prioritarias") ? <DashboardPriorityTasksCard /> : null}
       </div>
+
+      {DASHBOARD_WIDGETS.every((w) => isHidden(w.id)) ? (
+        <p className="text-center text-body text-muted-foreground">
+          Todos os widgets estão ocultos. Reative-os em Configurações.
+        </p>
+      ) : null}
     </div>
   );
 }

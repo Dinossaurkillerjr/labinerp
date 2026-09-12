@@ -65,7 +65,18 @@ export function TasksBoard({ tasks }: { tasks: Task[] }) {
   }
 
   if (tasks.length === 0) {
-    return <EmptyState title="Nenhuma tarefa por aqui" description="Crie a primeira tarefa para começar." />;
+    return (
+      <EmptyState
+        title="Nenhuma tarefa por aqui"
+        description="Crie a primeira tarefa para começar — só o título é obrigatório."
+        action={
+          <Button onClick={() => openNewTask("a_fazer")}>
+            <Plus className="size-4" />
+            Nova tarefa
+          </Button>
+        }
+      />
+    );
   }
 
   return (

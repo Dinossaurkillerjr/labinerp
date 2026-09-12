@@ -22,14 +22,16 @@ export function DataTable<T extends { id: string }>({
   data,
   emptyTitle = "Nada por aqui ainda",
   emptyDescription = "Quando houver registros, eles aparecem nesta tabela.",
+  emptyAction,
 }: {
   columns: DataTableColumn<T>[];
   data: T[];
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: React.ReactNode;
 }) {
   if (data.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
   }
 
   return (

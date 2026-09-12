@@ -1,6 +1,17 @@
 "use client";
 
-import { Plus, ShoppingBag, Receipt, Package, Users, CheckSquare, PenTool } from "lucide-react";
+import {
+  Plus,
+  TrendingUp,
+  Receipt,
+  PiggyBank,
+  Banknote,
+  ShoppingBag,
+  Package,
+  Users,
+  CheckSquare,
+  PenTool,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,10 +28,19 @@ import { SaleForm } from "@/components/sales/sale-form";
 import { ProductForm } from "@/components/catalog/product-form";
 import { ContactForm } from "@/components/contacts/contact-form";
 import { TaskForm } from "@/components/tasks/task-form";
+import type { TransactionType } from "@/lib/finance/types";
 
 export function QuickActionButton() {
   const { openDrawer, closeDrawer } = useUI();
   const router = useRouter();
+
+  function openTransaction(title: string, defaultType: TransactionType) {
+    openDrawer({
+      title,
+      description: "Tipo → categoria → dados essenciais → salvar.",
+      content: <TransactionForm defaultType={defaultType} onDone={closeDrawer} />,
+    });
+  }
 
   return (
     <DropdownMenu>
@@ -32,6 +52,19 @@ export function QuickActionButton() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Criar novo</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => openTransaction("Nova receita", "income")}>
+          <TrendingUp /> Receita
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openTransaction("Nova despesa", "expense")}>
+          <Receipt /> Despesa
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openTransaction("Novo aporte", "owner_contribution")}>
+          <PiggyBank /> Aporte
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openTransaction("Nova retirada", "owner_withdrawal")}>
+          <Banknote /> Retirada
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() =>
             openDrawer({
@@ -41,18 +74,7 @@ export function QuickActionButton() {
             })
           }
         >
-          <ShoppingBag /> Nova venda
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() =>
-            openDrawer({
-              title: "Novo lançamento",
-              description: "Tipo → categoria → dados essenciais → salvar.",
-              content: <TransactionForm defaultType="expense" onDone={closeDrawer} />,
-            })
-          }
-        >
-          <Receipt /> Nova despesa
+          <ShoppingBag /> Venda
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
@@ -63,7 +85,7 @@ export function QuickActionButton() {
             })
           }
         >
-          <Package /> Novo produto
+          <Package /> Produto
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
@@ -74,7 +96,7 @@ export function QuickActionButton() {
             })
           }
         >
-          <Users /> Novo contato
+          <Users /> Contato
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
@@ -85,10 +107,10 @@ export function QuickActionButton() {
             })
           }
         >
-          <CheckSquare /> Nova tarefa
+          <CheckSquare /> Tarefa
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => router.push("/canvas")}>
-          <PenTool /> Nova nota no canvas
+          <PenTool /> Nota no canvas
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

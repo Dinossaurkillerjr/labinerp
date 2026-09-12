@@ -18,6 +18,9 @@ import { DrawerForm, DrawerFormActions } from "@/components/common/drawer-form";
 import { CostComponentsEditor } from "@/components/catalog/cost-components-editor";
 import { CostSummary } from "@/components/catalog/cost-summary";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
+import { useSales } from "@/lib/sales/sales-provider";
+import { useTasks } from "@/lib/tasks/tasks-provider";
+import { formatCurrencyCents } from "@/lib/currency";
 import type { CostComponent, Product, ProductStatus } from "@/lib/catalog/types";
 
 const STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
@@ -35,7 +38,12 @@ function parseListInput(value: string): string[] {
 
 export function ProductForm({ product, onDone }: { product?: Product; onDone: () => void }) {
   const { addProduct, updateProduct } = useCatalog();
+  const { sales } = useSales();
+  const { tasks } = useTasks();
   const isEditing = Boolean(product);
+
+  const relatedSales = product ? sales.filter((s) => s.productId === product.id) : [];
+  const relatedTasks = product ? tasks.filter((t) => t.relations?.productId === product.id) : [];
 
   const [name, setName] = React.useState(product?.name ?? "");
   const [status, setStatus] = React.useState<ProductStatus>(product?.status ?? "rascunho");
@@ -120,6 +128,36 @@ export function ProductForm({ product, onDone }: { product?: Product; onDone: ()
             <CostSummary components={costComponents} price={price} />
           ) : null}
         </div>
+
+        {isEditing && (relatedSales.length > 0 || relatedTasks.length > 0) ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+            {relatedSales.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-caption font-medium text-muted-foreground">
+                  Vendas deste produto ({relatedSales.length})
+                </span>
+                {relatedSales.slice(0, 3).map((sale) => (
+                  <div key={sale.id} className="flex justify-between text-caption">
+                    <span className="text-foreground">{new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                    <span className="text-muted-foreground">{formatCurrencyCents(sale.totalAmount)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {relatedTasks.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-caption font-medium text-muted-foreground">
+                  Tarefas relacionadas ({relatedTasks.length})
+                </span>
+                {relatedTasks.slice(0, 3).map((task) => (
+                  <span key={task.id} className="text-caption text-foreground">
+                    • {task.title}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <CollapsibleSection defaultOpen={hasExtraFields}>
           <Field label="Categoria" optional>

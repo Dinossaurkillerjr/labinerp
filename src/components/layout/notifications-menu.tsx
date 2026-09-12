@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,27 +13,54 @@ import { NotificationItem } from "@/components/common/notification-item";
 import { EmptyState } from "@/components/common/empty-state";
 import { useUI } from "@/components/providers/ui-provider";
 import { useTasks } from "@/lib/tasks/tasks-provider";
+import { useFinance } from "@/lib/finance/finance-provider";
+import { useCatalog } from "@/lib/catalog/catalog-provider";
+import { useSales } from "@/lib/sales/sales-provider";
+import { useSettings } from "@/lib/settings/settings-provider";
 import { deriveTaskNotifications } from "@/lib/tasks/notifications";
+import {
+  deriveFinanceNotifications,
+  deriveMarginNotifications,
+  deriveMonthClosingNotification,
+  deriveSalesTodayNotification,
+} from "@/lib/notifications/business";
 
 function nowMs(): number {
   return Date.now();
 }
 
 export function NotificationsMenu() {
+  const [open, setOpen] = React.useState(false);
+  const router = useRouter();
   const { notifications, markAllNotificationsRead } = useUI();
   const { tasks } = useTasks();
+  const { transactions, monthClosings } = useFinance();
+  const { products } = useCatalog();
+  const { sales } = useSales();
+  const { settings } = useSettings();
 
-  const taskNotifications = React.useMemo(() => {
+  const businessNotifications = React.useMemo(() => {
     const now = nowMs();
     const today = new Date(now).toISOString().slice(0, 10);
-    return deriveTaskNotifications(tasks, today, now);
-  }, [tasks]);
+    return [
+      ...deriveTaskNotifications(tasks, today, now),
+      ...deriveFinanceNotifications(transactions, today),
+      ...deriveMonthClosingNotification(transactions, monthClosings, today),
+      ...deriveMarginNotifications(products, settings.marginThresholdPercent, today),
+      ...deriveSalesTodayNotification(sales, today),
+    ].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }, [tasks, transactions, monthClosings, products, sales, settings.marginThresholdPercent]);
 
-  const allNotifications = [...taskNotifications, ...notifications];
+  const allNotifications = [...businessNotifications, ...notifications];
   const unreadCount = allNotifications.filter((n) => !n.read).length;
 
+  function handleNavigate(href: string) {
+    setOpen(false);
+    router.push(href);
+  }
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
           <Bell className="size-4" />
@@ -62,9 +90,9 @@ export function NotificationsMenu() {
             description="Você está em dia."
           />
         ) : (
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto">
             {allNotifications.map((n) => (
-              <NotificationItem key={n.id} notification={n} />
+              <NotificationItem key={n.id} notification={n} onNavigate={handleNavigate} />
             ))}
           </div>
         )}

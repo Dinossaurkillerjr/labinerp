@@ -43,7 +43,7 @@ const STATUS_LABELS: Record<ContactStatus, string> = {
 
 export function ContactsPanel() {
   const { contacts, deleteContact } = useContacts();
-  const { openDrawer, closeDrawer } = useUI();
+  const { openDrawer, closeDrawer, confirm } = useUI();
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<ContactStatus | "todos">("todos");
 
@@ -72,8 +72,14 @@ export function ContactsPanel() {
   }
 
   function handleDelete(contact: Contact) {
-    deleteContact(contact.id);
-    toast.success("Contato excluído.");
+    confirm({
+      title: "Excluir contato?",
+      description: `"${contact.name}" será removido. O histórico de vendas já registrado é mantido, mas perde o vínculo com este contato.`,
+      onConfirm: () => {
+        deleteContact(contact.id);
+        toast.success("Contato excluído.");
+      },
+    });
   }
 
   const columns: DataTableColumn<Contact>[] = [
@@ -142,6 +148,12 @@ export function ContactsPanel() {
         data={filtered}
         emptyTitle="Nenhum contato cadastrado"
         emptyDescription="Crie seu primeiro contato — nome e WhatsApp já bastam para começar."
+        emptyAction={
+          <Button onClick={openCreate}>
+            <Plus className="size-4" />
+            Adicionar contato
+          </Button>
+        }
       />
     </div>
   );

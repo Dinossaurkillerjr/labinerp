@@ -1,12 +1,22 @@
 import { cn } from "@/lib/utils";
 import type { Notification } from "@/components/providers/ui-provider";
 
-export function NotificationItem({ notification }: { notification: Notification }) {
+export function NotificationItem({
+  notification,
+  onNavigate,
+}: {
+  notification: Notification;
+  onNavigate?: (href: string) => void;
+}) {
+  const Wrapper = notification.href && onNavigate ? "button" : "div";
+
   return (
-    <div
+    <Wrapper
+      onClick={notification.href && onNavigate ? () => onNavigate(notification.href!) : undefined}
       className={cn(
-        "flex gap-2.5 border-b border-border px-3 py-2.5 last:border-b-0",
-        !notification.read && "bg-sidebar-accent/30"
+        "flex w-full gap-2.5 border-b border-border px-3 py-2.5 text-left last:border-b-0",
+        !notification.read && "bg-sidebar-accent/30",
+        notification.href && onNavigate && "cursor-pointer hover:bg-paper-mist"
       )}
     >
       <div
@@ -20,6 +30,6 @@ export function NotificationItem({ notification }: { notification: Notification 
         <p className="text-body text-muted-foreground">{notification.description}</p>
         <p className="text-caption text-muted-foreground">{notification.createdAt}</p>
       </div>
-    </div>
+    </Wrapper>
   );
 }

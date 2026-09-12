@@ -30,7 +30,7 @@ const STATUS_MAP: Record<ProductStatus, Status> = {
 
 export function ProductsPanel() {
   const { products, deleteProduct } = useCatalog();
-  const { openDrawer, closeDrawer } = useUI();
+  const { openDrawer, closeDrawer, confirm } = useUI();
   const [search, setSearch] = React.useState("");
 
   const filtered = products.filter((p) =>
@@ -62,8 +62,14 @@ export function ProductsPanel() {
   }
 
   function handleDelete(product: Product) {
-    deleteProduct(product.id);
-    toast.success("Produto excluído.");
+    confirm({
+      title: "Excluir produto?",
+      description: `"${product.name}" será removido do catálogo. Vendas já registradas não são afetadas.`,
+      onConfirm: () => {
+        deleteProduct(product.id);
+        toast.success("Produto excluído.");
+      },
+    });
   }
 
   const columns: DataTableColumn<Product>[] = [
@@ -139,6 +145,12 @@ export function ProductsPanel() {
         data={filtered}
         emptyTitle="Nenhum produto cadastrado"
         emptyDescription="Crie seu primeiro produto — você pode começar só com o nome."
+        emptyAction={
+          <Button onClick={openCreate}>
+            <Plus className="size-4" />
+            Adicionar produto
+          </Button>
+        }
       />
     </div>
   );

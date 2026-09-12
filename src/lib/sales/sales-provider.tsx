@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import type { Sale, SalesChannel } from "./types";
-import { salesReducer, EMPTY_SALES_STATE, type SalesAction, type SalesState } from "./sales-reducer";
+import { salesReducer, type SalesAction, type SalesState } from "./sales-reducer";
+import { SEED_SALES } from "./seed";
 import { buildIncomeTransactionInput } from "./calculations";
 import { useFinance } from "@/lib/finance/finance-provider";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
@@ -20,7 +21,7 @@ function nowISO(): string {
 }
 
 function seededState(): SalesState {
-  return EMPTY_SALES_STATE;
+  return { sales: SEED_SALES };
 }
 
 export type NewSaleInput = {

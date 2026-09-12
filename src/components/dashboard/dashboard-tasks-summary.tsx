@@ -6,15 +6,46 @@ import { DataTable, type DataTableColumn } from "@/components/common/data-table"
 import { PriorityBadge } from "@/components/common/priority-badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useTasks } from "@/lib/tasks/tasks-provider";
+import { useSettings } from "@/lib/settings/settings-provider";
 import { isOverdue } from "@/lib/tasks/filters";
+import { buildTarefasKpi } from "@/lib/dashboard/calculations";
 import type { Task } from "@/lib/tasks/types";
 
 const PRIORITY_WEIGHT: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
 
-export function DashboardTasksStatCard() {
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-caption">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-foreground">{value}</span>
+    </div>
+  );
+}
+
+export function DashboardTasksStatCard({ todayISO }: { todayISO: string }) {
   const { tasks } = useTasks();
+  const { settings } = useSettings();
+  const kpi = buildTarefasKpi(tasks, todayISO);
   const pending = tasks.filter((t) => t.status !== "concluido").length;
-  return <StatCard label="Tarefas" value={`${pending} pendentes`} icon={CheckSquare} />;
+
+  return (
+    <StatCard
+      label="Tarefas"
+      value={`${pending} pendentes`}
+      icon={CheckSquare}
+      href="/tarefas"
+      footer={
+        settings.dashboardDetailed ? (
+          <div className="flex flex-col gap-0.5">
+            <DetailRow label="Hoje" value={String(kpi.hoje)} />
+            <DetailRow label="Atrasadas" value={String(kpi.atrasadas)} />
+            <DetailRow label="Próximas (semana)" value={String(kpi.proximas)} />
+            <DetailRow label="Concluídas" value={String(kpi.concluidas)} />
+          </div>
+        ) : undefined
+      }
+    />
+  );
 }
 
 export function DashboardPriorityTasksCard() {

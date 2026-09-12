@@ -7,6 +7,7 @@ export type TaskNotification = {
   description: string;
   createdAt: string;
   read: boolean;
+  href?: string;
 };
 
 const RECENTLY_COMPLETED_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -30,6 +31,7 @@ export function deriveTaskNotifications(tasks: Task[], todayISO: string, nowMs: 
       description: t.title,
       createdAt: t.dueDate!,
       read: false,
+      href: "/tarefas",
     })),
     ...dueToday.map((t) => ({
       id: `task-due-today-${t.id}`,
@@ -37,6 +39,7 @@ export function deriveTaskNotifications(tasks: Task[], todayISO: string, nowMs: 
       description: t.title,
       createdAt: t.dueDate!,
       read: false,
+      href: "/tarefas",
     })),
     ...recentlyCompleted.map((t) => ({
       id: `task-completed-${t.id}`,
@@ -44,6 +47,7 @@ export function deriveTaskNotifications(tasks: Task[], todayISO: string, nowMs: 
       description: t.title,
       createdAt: t.completedAt!,
       read: false,
+      href: "/tarefas",
     })),
   ];
 

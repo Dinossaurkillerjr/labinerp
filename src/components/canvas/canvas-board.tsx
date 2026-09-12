@@ -397,6 +397,17 @@ export function CanvasBoard() {
         backgroundPosition: `${viewport.x}px ${viewport.y}px`,
       }}
     >
+      {elements.length === 0 ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="max-w-xs text-center">
+            <p className="text-body-lg font-medium text-foreground">Seu canvas está vazio</p>
+            <p className="mt-1 text-body text-muted-foreground">
+              Use a barra acima para adicionar texto, notas ou links — ou arraste uma imagem aqui, ou cole com Ctrl+V.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       <div
         className="absolute left-0 top-0 origin-top-left"
         style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}

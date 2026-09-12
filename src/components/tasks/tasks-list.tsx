@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
 
 export function TasksList({ tasks, todayISO }: { tasks: Task[]; todayISO: string }) {
   const { deleteTask, setTaskStatus } = useTasks();
-  const { openDrawer, closeDrawer } = useUI();
+  const { openDrawer, closeDrawer, confirm } = useUI();
 
   function openTask(task: Task) {
     openDrawer({ title: "Editar tarefa", content: <TaskForm task={task} onDone={closeDrawer} /> });
@@ -81,10 +81,16 @@ export function TasksList({ tasks, todayISO }: { tasks: Task[]; todayISO: string
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onSelect={() => {
-                deleteTask(row.id);
-                toast.success("Tarefa excluída.");
-              }}
+              onSelect={() =>
+                confirm({
+                  title: "Excluir tarefa?",
+                  description: `"${row.title}" será removida permanentemente.`,
+                  onConfirm: () => {
+                    deleteTask(row.id);
+                    toast.success("Tarefa excluída.");
+                  },
+                })
+              }
             >
               Excluir
             </DropdownMenuItem>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Toaster } from "@/components/ui/sonner";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 
 export type DrawerConfig = {
   title: string;
@@ -36,6 +37,15 @@ export type Notification = {
   description: string;
   createdAt: string;
   read: boolean;
+  /** Where clicking this notification should take the user, when relevant. */
+  href?: string;
+};
+
+export type ConfirmConfig = {
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  onConfirm: () => void;
 };
 
 type UIContextValue = {
@@ -43,6 +53,8 @@ type UIContextValue = {
   closeDrawer: () => void;
   openModal: (config: ModalConfig) => void;
   closeModal: () => void;
+  /** Opens a shared confirmation dialog for destructive actions (delete, etc). */
+  confirm: (config: ConfirmConfig) => void;
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   notifications: Notification[];
@@ -80,6 +92,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [modal, setModal] = React.useState<ModalConfig | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [confirmConfig, setConfirmConfig] = React.useState<ConfirmConfig | null>(null);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [notifications, setNotifications] = React.useState<Notification[]>(MOCK_NOTIFICATIONS);
 
@@ -94,6 +108,11 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     setModalOpen(true);
   }, []);
   const closeModal = React.useCallback(() => setModalOpen(false), []);
+
+  const confirm = React.useCallback((config: ConfirmConfig) => {
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  }, []);
 
   const markAllNotificationsRead = React.useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -116,12 +135,13 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       closeDrawer,
       openModal,
       closeModal,
+      confirm,
       commandPaletteOpen,
       setCommandPaletteOpen,
       notifications,
       markAllNotificationsRead,
     }),
-    [openDrawer, closeDrawer, openModal, closeModal, commandPaletteOpen, notifications, markAllNotificationsRead]
+    [openDrawer, closeDrawer, openModal, closeModal, confirm, commandPaletteOpen, notifications, markAllNotificationsRead]
   );
 
   return (
@@ -156,6 +176,17 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
           {modal?.footer ? <DialogFooter>{modal.footer}</DialogFooter> : null}
         </DialogContent>
       </Dialog>
+
+      {confirmConfig ? (
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title={confirmConfig.title}
+          description={confirmConfig.description}
+          confirmLabel={confirmConfig.confirmLabel}
+          onConfirm={confirmConfig.onConfirm}
+        />
+      ) : null}
 
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
       <Toaster position="bottom-right" />

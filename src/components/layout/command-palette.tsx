@@ -48,7 +48,7 @@ export function CommandPalette({
   const { products } = useCatalog();
   const { contacts } = useContacts();
   const { sales } = useSales();
-  const { transactions } = useFinance();
+  const { transactions, categories } = useFinance();
 
   function go(href: string) {
     onOpenChange(false);
@@ -172,17 +172,21 @@ export function CommandPalette({
             <>
               <CommandSeparator />
               <CommandGroup heading="Lançamentos financeiros">
-                {recentTransactions.map((transaction) => (
-                  <CommandItem
-                    key={transaction.id}
-                    value={`lançamento ${transaction.description}`}
-                    onSelect={() =>
-                      open_({ title: "Editar lançamento", content: <TransactionForm transaction={transaction} onDone={closeDrawer} /> })
-                    }
-                  >
-                    <Receipt /> {transaction.description} — {formatCurrencyCents(transaction.amount)}
-                  </CommandItem>
-                ))}
+                {recentTransactions.map((transaction) => {
+                  const categoryLabel = categories.find((c) => c.id === transaction.category)?.label ?? transaction.category;
+                  return (
+                    <CommandItem
+                      key={transaction.id}
+                      value={`lançamento ${transaction.description} ${categoryLabel}`}
+                      onSelect={() =>
+                        open_({ title: "Editar lançamento", content: <TransactionForm transaction={transaction} onDone={closeDrawer} /> })
+                      }
+                    >
+                      <Receipt /> {transaction.description} — {formatCurrencyCents(transaction.amount)}
+                      <span className="ml-auto text-caption text-muted-foreground">{categoryLabel}</span>
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             </>
           ) : null}

@@ -6,6 +6,8 @@ import { Tag } from "@/components/common/tag";
 import { formatCurrencyCents } from "@/lib/currency";
 import { useSales } from "@/lib/sales/sales-provider";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
+import { useTasks } from "@/lib/tasks/tasks-provider";
+import { PriorityBadge } from "@/components/common/priority-badge";
 import { aggregateContactHistory } from "@/lib/sales/calculations";
 import type { Contact, ContactStatus } from "@/lib/contacts/types";
 import type { Sale } from "@/lib/sales/types";
@@ -20,8 +22,10 @@ const STATUS_MAP: Record<ContactStatus, Status> = {
 export function ContactDetail({ contact }: { contact: Contact }) {
   const { sales } = useSales();
   const { getProduct } = useCatalog();
+  const { tasks } = useTasks();
   const contactSales = sales.filter((s) => s.contactId === contact.id).sort((a, b) => (a.date < b.date ? 1 : -1));
   const history = aggregateContactHistory(sales, contact.id);
+  const relatedTasks = tasks.filter((t) => t.relations?.contactId === contact.id);
 
   const columns: DataTableColumn<Sale>[] = [
     { key: "date", header: "Data", render: (row) => new Date(row.date + "T00:00:00").toLocaleDateString("pt-BR") },
@@ -79,6 +83,20 @@ export function ContactDetail({ contact }: { contact: Contact }) {
           emptyDescription="Quando esse contato comprar, as vendas aparecem aqui."
         />
       </div>
+
+      {relatedTasks.length > 0 ? (
+        <div>
+          <span className="mb-2 block text-body font-medium text-foreground">Tarefas relacionadas</span>
+          <div className="flex flex-col divide-y divide-border rounded-xl border border-border">
+            {relatedTasks.map((task) => (
+              <div key={task.id} className="flex items-center justify-between px-3 py-2">
+                <span className="text-body text-foreground">{task.title}</span>
+                {task.priority ? <PriorityBadge priority={task.priority} /> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

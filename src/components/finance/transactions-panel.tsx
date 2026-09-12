@@ -46,7 +46,7 @@ function statusForBadge(status: TransactionStatus): Status {
 
 export function TransactionsPanel({ monthId }: { monthId: string }) {
   const { transactions, categories, setTransactionStatus, deleteTransaction, isMonthClosed } = useFinance();
-  const { openDrawer, closeDrawer } = useUI();
+  const { openDrawer, closeDrawer, confirm } = useUI();
 
   const [view, setView] = React.useState<"simples" | "detalhada">("simples");
   const [typeFilter, setTypeFilter] = React.useState<TransactionType | "todos">("todos");
@@ -80,8 +80,14 @@ export function TransactionsPanel({ monthId }: { monthId: string }) {
       toast.error("Este mês está fechado. Reabra-o para excluir lançamentos.");
       return;
     }
-    deleteTransaction(transaction.id);
-    toast.success("Lançamento excluído.");
+    confirm({
+      title: "Excluir lançamento?",
+      description: `"${transaction.description}" será removido permanentemente do Financeiro.`,
+      onConfirm: () => {
+        deleteTransaction(transaction.id);
+        toast.success("Lançamento excluído.");
+      },
+    });
   }
 
   function handleSettle(transaction: Transaction) {
@@ -241,8 +247,27 @@ export function TransactionsPanel({ monthId }: { monthId: string }) {
       <DataTable
         columns={columns}
         data={filtered}
-        emptyTitle="Nenhum lançamento encontrado"
-        emptyDescription="Ajuste os filtros ou crie um novo lançamento."
+        emptyTitle={transactions.length === 0 ? "Nenhuma movimentação registrada ainda" : "Nenhum lançamento encontrado"}
+        emptyDescription={
+          transactions.length === 0
+            ? "Registre a primeira receita, despesa, aporte ou retirada para começar."
+            : "Ajuste os filtros ou crie um novo lançamento."
+        }
+        emptyAction={
+          transactions.length === 0 ? (
+            <Button
+              onClick={() =>
+                openDrawer({
+                  title: "Novo lançamento",
+                  description: "Tipo → categoria → dados essenciais → salvar.",
+                  content: <TransactionForm onDone={closeDrawer} />,
+                })
+              }
+            >
+              Novo lançamento
+            </Button>
+          ) : undefined
+        }
       />
     </div>
   );

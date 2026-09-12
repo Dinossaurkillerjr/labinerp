@@ -40,7 +40,7 @@ export function SalesPanel() {
   const { sales, deleteSale } = useSales();
   const { getProduct } = useCatalog();
   const { getContact } = useContacts();
-  const { openDrawer, closeDrawer } = useUI();
+  const { openDrawer, closeDrawer, confirm } = useUI();
   const [search, setSearch] = React.useState("");
 
   const sorted = [...sales].sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -61,8 +61,14 @@ export function SalesPanel() {
   }
 
   function handleDelete(sale: Sale) {
-    deleteSale(sale.id);
-    toast.success("Venda excluída — o lançamento financeiro correspondente também foi removido.");
+    confirm({
+      title: "Excluir venda?",
+      description: "A venda e o lançamento de receita correspondente no Financeiro serão removidos. Essa ação não pode ser desfeita.",
+      onConfirm: () => {
+        deleteSale(sale.id);
+        toast.success("Venda excluída — o lançamento financeiro correspondente também foi removido.");
+      },
+    });
   }
 
   const columns: DataTableColumn<Sale>[] = [
@@ -122,6 +128,12 @@ export function SalesPanel() {
         data={filtered}
         emptyTitle="Nenhuma venda registrada"
         emptyDescription="Registre sua primeira venda — a receita entra no Financeiro automaticamente."
+        emptyAction={
+          <Button onClick={openCreate}>
+            <Plus className="size-4" />
+            Registrar venda
+          </Button>
+        }
       />
     </div>
   );

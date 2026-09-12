@@ -6,6 +6,7 @@ import {
   Users,
   CheckSquare,
   PenTool,
+  BarChart3,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -24,5 +25,6 @@ export const NAV_ITEMS: NavItem[] = [
   { title: "Contatos", href: "/contatos", icon: Users },
   { title: "Tarefas", href: "/tarefas", icon: CheckSquare },
   { title: "Canvas", href: "/canvas", icon: PenTool },
+  { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
   { title: "Configurações", href: "/configuracoes", icon: Settings },
 ];

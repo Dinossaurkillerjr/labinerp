@@ -8,6 +8,7 @@ import { CatalogProvider } from "@/lib/catalog/catalog-provider";
 import { ContactsProvider } from "@/lib/contacts/contacts-provider";
 import { SalesProvider } from "@/lib/sales/sales-provider";
 import { TasksProvider } from "@/lib/tasks/tasks-provider";
+import { SettingsProvider } from "@/lib/settings/settings-provider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -31,19 +32,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <FinanceProvider>
-          <CatalogProvider>
-            <ContactsProvider>
-              <SalesProvider>
-                <TasksProvider>
-                  <UIProvider>
-                    <AppShell>{children}</AppShell>
-                  </UIProvider>
-                </TasksProvider>
-              </SalesProvider>
-            </ContactsProvider>
-          </CatalogProvider>
-        </FinanceProvider>
+        <SettingsProvider>
+          <FinanceProvider>
+            <CatalogProvider>
+              <ContactsProvider>
+                <SalesProvider>
+                  <TasksProvider>
+                    <UIProvider>
+                      <AppShell>{children}</AppShell>
+                    </UIProvider>
+                  </TasksProvider>
+                </SalesProvider>
+              </ContactsProvider>
+            </CatalogProvider>
+          </FinanceProvider>
+        </SettingsProvider>
       </body>
     </html>
   );
