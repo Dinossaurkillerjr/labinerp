@@ -66,6 +66,28 @@ describe("contactsReducer", () => {
     expect(state.contacts[0].status).toBe("cliente");
   });
 
+  it("UPDATE_CONTACT move o contato de estágio no pipeline (drag do Kanban)", () => {
+    let state = contactsReducer(EMPTY_CONTACTS_STATE, { type: "ADD_CONTACT", contact: makeContact({ stageId: "novo-contato" }) });
+    state = contactsReducer(state, {
+      type: "UPDATE_CONTACT",
+      id: "ct1",
+      changes: { stageId: "cliente", status: "cliente" },
+      at: "2026-01-02T00:00:00.000Z",
+    });
+    expect(state.contacts[0].stageId).toBe("cliente");
+  });
+
+  it("UPDATE_CONTACT guarda tags coloridas no contato", () => {
+    let state = contactsReducer(EMPTY_CONTACTS_STATE, { type: "ADD_CONTACT", contact: makeContact() });
+    state = contactsReducer(state, {
+      type: "UPDATE_CONTACT",
+      id: "ct1",
+      changes: { tags: [{ id: "tag-1", label: "VIP", color: "violet" }] },
+      at: "2026-01-02T00:00:00.000Z",
+    });
+    expect(state.contacts[0].tags).toEqual([{ id: "tag-1", label: "VIP", color: "violet" }]);
+  });
+
   it("HYDRATE substitui o estado inteiro com os dados persistidos", () => {
     const persisted = { contacts: [makeContact({ id: "persisted-1" })] };
     const state = contactsReducer(EMPTY_CONTACTS_STATE, { type: "HYDRATE", state: persisted });

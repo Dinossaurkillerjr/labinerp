@@ -34,6 +34,29 @@ describe("tasksReducer", () => {
     expect(state.tasks[0].dueDate).toBe("2026-09-20");
   });
 
+  it("UPDATE_TASK remove a prioridade quando enviada como undefined (\"Sem prioridade\")", () => {
+    let state = tasksReducer(EMPTY_TASKS_STATE, { type: "ADD_TASK", task: makeTask({ priority: "alta" }) });
+    expect(state.tasks[0].priority).toBe("alta");
+    state = tasksReducer(state, {
+      type: "UPDATE_TASK",
+      id: "t1",
+      changes: { priority: undefined },
+      at: "2026-09-02T00:00:00.000Z",
+    });
+    expect(state.tasks[0].priority).toBeUndefined();
+  });
+
+  it("UPDATE_TASK guarda tags coloridas na tarefa", () => {
+    let state = tasksReducer(EMPTY_TASKS_STATE, { type: "ADD_TASK", task: makeTask() });
+    state = tasksReducer(state, {
+      type: "UPDATE_TASK",
+      id: "t1",
+      changes: { tags: [{ id: "tag-1", label: "Urgente", color: "orange" }] },
+      at: "2026-09-02T00:00:00.000Z",
+    });
+    expect(state.tasks[0].tags).toEqual([{ id: "tag-1", label: "Urgente", color: "orange" }]);
+  });
+
   it("SET_STATUS move a tarefa de coluna e marca completedAt ao concluir", () => {
     let state = tasksReducer(EMPTY_TASKS_STATE, { type: "ADD_TASK", task: makeTask() });
     state = tasksReducer(state, { type: "SET_STATUS", id: "t1", status: "concluido", at: "2026-09-03T00:00:00.000Z" });

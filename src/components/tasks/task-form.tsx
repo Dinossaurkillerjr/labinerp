@@ -17,12 +17,16 @@ import {
 import { CollapsibleSection } from "@/components/common/collapsible-section";
 import { DrawerForm, DrawerFormActions } from "@/components/common/drawer-form";
 import { ChecklistEditor } from "@/components/tasks/checklist-editor";
+import { TagsEditor } from "@/components/common/tags-editor";
 import { useTasks } from "@/lib/tasks/tasks-provider";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
 import { useContacts } from "@/lib/contacts/contacts-provider";
 import { useSales } from "@/lib/sales/sales-provider";
 import { DEFAULT_STATUS_COLUMNS } from "@/lib/tasks/types";
+import type { EntityTag } from "@/lib/tags";
 import type { ChecklistItem, Task, TaskPriority, TaskStatus } from "@/lib/tasks/types";
+
+const NO_PRIORITY = "nenhuma";
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "baixa", label: "Baixa" },
@@ -48,11 +52,15 @@ export function TaskForm({
   task,
   defaultDueDate,
   defaultStatus,
+  defaultTitle,
+  defaultContactId,
   onDone,
 }: {
   task?: Task;
   defaultDueDate?: string;
   defaultStatus?: TaskStatus;
+  defaultTitle?: string;
+  defaultContactId?: string;
   onDone: () => void;
 }) {
   const { addTask, updateTask } = useTasks();
@@ -61,7 +69,7 @@ export function TaskForm({
   const { sales } = useSales();
   const isEditing = Boolean(task);
 
-  const [title, setTitle] = React.useState(task?.title ?? "");
+  const [title, setTitle] = React.useState(task?.title ?? defaultTitle ?? "");
   const [description, setDescription] = React.useState(task?.description ?? "");
   const [status, setStatus] = React.useState<TaskStatus>(task?.status ?? defaultStatus ?? "a_fazer");
   const [priority, setPriority] = React.useState<TaskPriority | "">(task?.priority ?? "");
@@ -69,12 +77,14 @@ export function TaskForm({
   const [category, setCategory] = React.useState(task?.category ?? "");
   const [checklist, setChecklist] = React.useState<ChecklistItem[]>(task?.checklist ?? []);
   const [productId, setProductId] = React.useState(task?.relations?.productId ?? "");
-  const [contactId, setContactId] = React.useState(task?.relations?.contactId ?? "");
+  const [contactId, setContactId] = React.useState(task?.relations?.contactId ?? defaultContactId ?? "");
   const [saleId, setSaleId] = React.useState(task?.relations?.saleId ?? "");
+  const [tags, setTags] = React.useState<EntityTag[]>(task?.tags ?? []);
 
   const hasExtraFields = Boolean(
     task?.description || task?.priority || task?.dueDate || task?.category ||
-    task?.checklist?.length || task?.relations?.productId || task?.relations?.contactId || task?.relations?.saleId
+    task?.checklist?.length || task?.relations?.productId || task?.relations?.contactId || task?.relations?.saleId ||
+    task?.tags?.length || defaultContactId || defaultDueDate
   );
 
   function handleSubmit() {
@@ -91,6 +101,7 @@ export function TaskForm({
       dueDate: toISODate(dueDate),
       category: category || undefined,
       checklist: checklist.length > 0 ? checklist : undefined,
+      tags: tags.length > 0 ? tags : undefined,
       relations:
         productId || contactId || saleId
           ? { productId: productId || undefined, contactId: contactId || undefined, saleId: saleId || undefined }
@@ -132,9 +143,13 @@ export function TaskForm({
               </Select>
             </Field>
             <Field label="Prioridade" optional>
-              <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Sem prioridade" /></SelectTrigger>
+              <Select
+                value={priority || NO_PRIORITY}
+                onValueChange={(value) => setPriority(value === NO_PRIORITY ? "" : (value as TaskPriority))}
+              >
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_PRIORITY}>Sem prioridade</SelectItem>
                   {PRIORITY_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                   ))}
@@ -154,6 +169,12 @@ export function TaskForm({
           <div className="flex flex-col gap-2">
             <span className="text-body font-medium text-foreground">Checklist</span>
             <ChecklistEditor items={checklist} onChange={setChecklist} />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-body font-medium text-foreground">Tags</span>
+            <p className="text-caption text-muted-foreground">A primeira tag aparece como uma faixa colorida no card do Kanban.</p>
+            <TagsEditor tags={tags} onChange={setTags} />
           </div>
 
           <div className="flex flex-col gap-3">

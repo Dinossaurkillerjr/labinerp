@@ -13,6 +13,7 @@ import {
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { cn } from "@/lib/utils";
 
 export type DrawerConfig = {
   title: string;
@@ -29,6 +30,8 @@ export type ModalConfig = {
   description?: string;
   content: React.ReactNode;
   footer?: React.ReactNode;
+  /** Tailwind max-width override for the dialog panel, e.g. "sm:max-w-lg". */
+  widthClassName?: string;
 };
 
 export type Notification = {
@@ -165,7 +168,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
+        <DialogContent className={cn("max-h-[85vh] overflow-y-auto", modal?.widthClassName ?? "sm:max-w-md")}>
           <DialogHeader>
             <DialogTitle>{modal?.title}</DialogTitle>
             {modal?.description ? (

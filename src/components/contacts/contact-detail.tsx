@@ -1,31 +1,32 @@
 "use client";
 
-import { StatusBadge, type Status } from "@/components/common/status-badge";
+import { UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { Tag } from "@/components/common/tag";
 import { formatCurrencyCents } from "@/lib/currency";
 import { useSales } from "@/lib/sales/sales-provider";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
 import { useTasks } from "@/lib/tasks/tasks-provider";
+import { useSettings } from "@/lib/settings/settings-provider";
+import { useUI } from "@/components/providers/ui-provider";
 import { PriorityBadge } from "@/components/common/priority-badge";
+import { TaskForm } from "@/components/tasks/task-form";
 import { aggregateContactHistory } from "@/lib/sales/calculations";
-import type { Contact, ContactStatus } from "@/lib/contacts/types";
+import { resolveStageId } from "@/lib/contacts/pipeline";
+import type { Contact } from "@/lib/contacts/types";
 import type { Sale } from "@/lib/sales/types";
-
-const STATUS_MAP: Record<ContactStatus, Status> = {
-  lead: "rascunho",
-  cliente: "concluido",
-  recorrente: "concluido",
-  inativo: "cancelado",
-};
 
 export function ContactDetail({ contact }: { contact: Contact }) {
   const { sales } = useSales();
   const { getProduct } = useCatalog();
   const { tasks } = useTasks();
+  const { settings } = useSettings();
+  const { openDrawer, closeDrawer } = useUI();
   const contactSales = sales.filter((s) => s.contactId === contact.id).sort((a, b) => (a.date < b.date ? 1 : -1));
   const history = aggregateContactHistory(sales, contact.id);
   const relatedTasks = tasks.filter((t) => t.relations?.contactId === contact.id);
+  const stageLabel = settings.pipelineStages.find((s) => s.id === resolveStageId(contact, settings.pipelineStages))?.label;
 
   const columns: DataTableColumn<Sale>[] = [
     { key: "date", header: "Data", render: (row) => new Date(row.date + "T00:00:00").toLocaleDateString("pt-BR") },
@@ -34,14 +35,34 @@ export function ContactDetail({ contact }: { contact: Contact }) {
     { key: "total", header: "Valor", align: "right", render: (row) => formatCurrencyCents(row.totalAmount) },
   ];
 
+  function openFollowUp() {
+    openDrawer({
+      title: "Novo follow-up",
+      description: "Cria uma tarefa para lembrar de falar com esse contato de novo.",
+      content: (
+        <TaskForm
+          defaultTitle={`Falar com ${contact.name} novamente`}
+          defaultContactId={contact.id}
+          onDone={closeDrawer}
+        />
+      ),
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4 py-4">
       <div className="flex flex-wrap items-center gap-2">
-        <StatusBadge status={STATUS_MAP[contact.status]} />
+        {stageLabel ? <Tag color="blue">{stageLabel}</Tag> : null}
         {contact.whatsapp ? <Tag color="green">{contact.whatsapp}</Tag> : null}
         {contact.instagram ? <Tag color="violet">{contact.instagram}</Tag> : null}
-        {contact.email ? <Tag color="blue">{contact.email}</Tag> : null}
+        {contact.email ? <Tag color="neutral">{contact.email}</Tag> : null}
+        {contact.tags?.map((tag) => <Tag key={tag.id} color={tag.color}>{tag.label}</Tag>)}
       </div>
+
+      <Button variant="outline" size="sm" className="w-fit" onClick={openFollowUp}>
+        <UserPlus className="size-3.5" />
+        Novo follow-up
+      </Button>
 
       <div className="grid grid-cols-3 gap-3 rounded-lg bg-paper-mist p-3 text-center">
         <div>

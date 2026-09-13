@@ -15,15 +15,14 @@ import {
 } from "@/components/ui/select";
 import { CollapsibleSection } from "@/components/common/collapsible-section";
 import { DrawerForm, DrawerFormActions } from "@/components/common/drawer-form";
+import { TagsEditor } from "@/components/common/tags-editor";
 import { useContacts } from "@/lib/contacts/contacts-provider";
-import type { Contact, ContactStatus, CustomField } from "@/lib/contacts/types";
+import { useSettings } from "@/lib/settings/settings-provider";
+import { resolveStageId, deriveStatusFromStage } from "@/lib/contacts/pipeline";
+import type { EntityTag } from "@/lib/tags";
+import type { Contact, CustomField } from "@/lib/contacts/types";
 
-const STATUS_OPTIONS: { value: ContactStatus; label: string }[] = [
-  { value: "lead", label: "Lead" },
-  { value: "cliente", label: "Cliente" },
-  { value: "recorrente", label: "Recorrente" },
-  { value: "inativo", label: "Inativo" },
-];
+const TAG_SUGGESTIONS = ["VIP", "Potencial", "Recorrente", "Influenciador", "Loja", "Atacado"];
 
 let localCounter = 0;
 function tempId() {
@@ -31,15 +30,18 @@ function tempId() {
   return `cf-tmp-${Date.now()}-${localCounter}`;
 }
 
-export function ContactForm({ contact, onDone }: { contact?: Contact; onDone: () => void }) {
+export function ContactForm({ contact, onDone, onCreated }: { contact?: Contact; onDone: () => void; onCreated?: (contact: Contact) => void }) {
   const { addContact, updateContact } = useContacts();
+  const { settings } = useSettings();
   const isEditing = Boolean(contact);
+  const stages = settings.pipelineStages;
 
   const [name, setName] = React.useState(contact?.name ?? "");
   const [whatsapp, setWhatsapp] = React.useState(contact?.whatsapp ?? "");
-  const [status, setStatus] = React.useState<ContactStatus>(contact?.status ?? "lead");
+  const [stageId, setStageId] = React.useState(contact ? resolveStageId(contact, stages) : stages[0]?.id ?? "");
   const [instagram, setInstagram] = React.useState(contact?.instagram ?? "");
   const [email, setEmail] = React.useState(contact?.email ?? "");
+  const [tags, setTags] = React.useState<EntityTag[]>(contact?.tags ?? []);
   const [customFields, setCustomFields] = React.useState<CustomField[]>(contact?.customFields ?? []);
   const [newFieldLabel, setNewFieldLabel] = React.useState("");
   const [newFieldValue, setNewFieldValue] = React.useState("");
@@ -68,22 +70,26 @@ export function ContactForm({ contact, onDone }: { contact?: Contact; onDone: ()
 
     const changes: Partial<Contact> = {
       name,
-      status,
+      stageId,
+      status: deriveStatusFromStage(stageId),
       whatsapp: whatsapp || undefined,
       instagram: instagram || undefined,
       email: email || undefined,
+      tags: tags.length > 0 ? tags : undefined,
       customFields,
     };
 
     if (isEditing && contact) {
       updateContact(contact.id, changes);
       toast.success("Contato atualizado.");
+      onDone();
     } else {
-      const created = addContact({ name, status, whatsapp: changes.whatsapp });
+      const created = addContact({ name, status: changes.status, whatsapp: changes.whatsapp });
       updateContact(created.id, changes);
       toast.success("Contato criado.");
+      onCreated?.({ ...created, ...changes });
+      onDone();
     }
-    onDone();
   }
 
   return (
@@ -95,16 +101,21 @@ export function ContactForm({ contact, onDone }: { contact?: Contact; onDone: ()
         <Field label="WhatsApp" optional>
           <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+55 11 90000-0000" />
         </Field>
-        <Field label="Status">
-          <Select value={status} onValueChange={(value) => setStatus(value as ContactStatus)}>
+        <Field label="Estágio" hint="Em que ponto da relação comercial esse contato está?">
+          <Select value={stageId} onValueChange={setStageId}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+              {stages.map((stage) => (
+                <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </Field>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-body font-medium text-foreground">Tags</span>
+          <TagsEditor tags={tags} onChange={setTags} suggestions={TAG_SUGGESTIONS} />
+        </div>
 
         <CollapsibleSection defaultOpen={hasExtraFields}>
           <Field label="Instagram" optional>

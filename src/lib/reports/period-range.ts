@@ -66,3 +66,12 @@ function toDayNumber(isoDate: string): number {
 export function isWithinRange(dateISO: string, range: PeriodRange): boolean {
   return dateISO >= range.start && dateISO <= range.end;
 }
+
+/** Percent change from `previous` to `current`, or undefined when there's no
+ *  baseline to compare against ("quando houver dados suficientes"). Shared by
+ *  every screen that shows a variação vs. período anterior, so the definition
+ *  of "trend" never drifts between Dashboard, Relatórios and Financeiro. */
+export function percentChange(current: number, previous: number): number | undefined {
+  if (previous <= 0) return undefined;
+  return ((current - previous) / previous) * 100;
+}

@@ -3,6 +3,9 @@ import {
   calculateSaleCost,
   calculateSaleProfit,
   buildIncomeTransactionInput,
+  calculateDiscountAmount,
+  calculateShippingCharged,
+  calculateSaleBreakdown,
   aggregateContactHistory,
 } from "./calculations";
 import type { Product } from "@/lib/catalog/types";
@@ -48,6 +51,67 @@ describe("buildIncomeTransactionInput", () => {
     expect(input.amount).toBe(12900);
     expect(input.status).toBe("concluido");
     expect(input.description).toContain("Camiseta Oversized Preta");
+  });
+});
+
+describe("calculateDiscountAmount", () => {
+  it("calcula desconto percentual sobre o subtotal", () => {
+    expect(calculateDiscountAmount(20000, { kind: "percentual", percent: 10 })).toBe(2000);
+  });
+
+  it("calcula desconto de valor fixo, sem passar do subtotal", () => {
+    expect(calculateDiscountAmount(10000, { kind: "valor_fixo", amount: 3000 })).toBe(3000);
+    expect(calculateDiscountAmount(1000, { kind: "valor_fixo", amount: 3000 })).toBe(1000); // nunca desconta mais que o subtotal
+  });
+
+  it("frete grátis não desconta o subtotal", () => {
+    expect(calculateDiscountAmount(14800, { kind: "frete_gratis" })).toBe(0);
+  });
+
+  it("sem cupom, não há desconto", () => {
+    expect(calculateDiscountAmount(14800, undefined)).toBe(0);
+  });
+});
+
+describe("calculateShippingCharged", () => {
+  it("cobra o custo real de frete quando não há frete grátis", () => {
+    expect(calculateShippingCharged(3000, undefined)).toBe(3000);
+    expect(calculateShippingCharged(3000, { kind: "percentual", percent: 10 })).toBe(3000);
+  });
+
+  it("zera o frete cobrado quando o cupom é frete grátis, mesmo com custo real", () => {
+    expect(calculateShippingCharged(3000, { kind: "frete_gratis" })).toBe(0);
+  });
+});
+
+describe("calculateSaleBreakdown", () => {
+  it("R$148 + frete grátis (custo real R$30 para a marca) → total R$148", () => {
+    const breakdown = calculateSaleBreakdown({
+      subtotal: 14800,
+      discount: { kind: "frete_gratis" },
+      shippingCost: 3000,
+    });
+    expect(breakdown.discountAmount).toBe(0);
+    expect(breakdown.shippingAmount).toBe(0);
+    expect(breakdown.shippingCost).toBe(3000); // custo real fica registrado mesmo não sendo cobrado
+    expect(breakdown.totalAmount).toBe(14800);
+  });
+
+  it("R$200 + 10% de desconto → desconto R$20, total R$180", () => {
+    const breakdown = calculateSaleBreakdown({
+      subtotal: 20000,
+      discount: { kind: "percentual", percent: 10 },
+      shippingCost: 0,
+    });
+    expect(breakdown.discountAmount).toBe(2000);
+    expect(breakdown.totalAmount).toBe(18000);
+  });
+
+  it("sem cupom e com frete cobrado, o frete soma ao total", () => {
+    const breakdown = calculateSaleBreakdown({ subtotal: 10000, shippingCost: 1500 });
+    expect(breakdown.discountAmount).toBe(0);
+    expect(breakdown.shippingAmount).toBe(1500);
+    expect(breakdown.totalAmount).toBe(11500);
   });
 });
 

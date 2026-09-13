@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/common/currency-input";
 import { DateInput } from "@/components/common/date-input";
 import { Combobox } from "@/components/common/combobox";
+import { CollapsibleSection } from "@/components/common/collapsible-section";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -19,13 +21,30 @@ import { DrawerForm, DrawerFormActions } from "@/components/common/drawer-form";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
 import { useContacts } from "@/lib/contacts/contacts-provider";
 import { useSales } from "@/lib/sales/sales-provider";
-import type { SalesChannel } from "@/lib/sales/types";
+import { useUI } from "@/components/providers/ui-provider";
+import { ContactForm } from "@/components/contacts/contact-form";
+import { calculateSaleBreakdown } from "@/lib/sales/calculations";
+import { formatCurrencyCents } from "@/lib/currency";
+import type { Contact } from "@/lib/contacts/types";
+import type { DiscountKind, SalesChannel } from "@/lib/sales/types";
 
 const CHANNEL_OPTIONS: { value: SalesChannel; label: string }[] = [
   { value: "nuvemshop", label: "Nuvemshop" },
   { value: "instagram", label: "Instagram" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "outro", label: "Outro" },
+];
+
+/** Sentinel for "sem cupom" — DiscountKind itself has no "none" member because
+ *  a persisted Discount is only ever created when the user actually picks one. */
+const NO_DISCOUNT = "nenhum" as const;
+type DiscountKindOption = DiscountKind | typeof NO_DISCOUNT;
+
+const DISCOUNT_KIND_OPTIONS: { value: DiscountKindOption; label: string }[] = [
+  { value: NO_DISCOUNT, label: "Sem cupom" },
+  { value: "percentual", label: "Percentual (%)" },
+  { value: "valor_fixo", label: "Valor fixo (R$)" },
+  { value: "frete_gratis", label: "Frete grátis" },
 ];
 
 function toISODate(date?: Date): string {
@@ -40,34 +59,72 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
   const { products } = useCatalog();
   const { contacts } = useContacts();
   const { addSale } = useSales();
+  const { openModal, closeModal } = useUI();
 
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [contactId, setContactId] = React.useState("");
   const [productId, setProductId] = React.useState("");
   const [quantity, setQuantity] = React.useState(1);
-  const [couponCode, setCouponCode] = React.useState("");
-  const [totalAmount, setTotalAmount] = React.useState(0);
-  const [totalTouched, setTotalTouched] = React.useState(false);
+  const [subtotal, setSubtotal] = React.useState(0);
+  const [subtotalTouched, setSubtotalTouched] = React.useState(false);
   const [channel, setChannel] = React.useState<SalesChannel>("nuvemshop");
   const [notes, setNotes] = React.useState("");
 
-  // Suggests a total from the product's price × quantity, but never overrides
-  // a value the user has already typed directly into the currency field.
-  function suggestTotal(nextProductId: string, nextQuantity: number) {
-    if (totalTouched) return;
+  const [discountKind, setDiscountKind] = React.useState<DiscountKindOption>(NO_DISCOUNT);
+  const [discountCode, setDiscountCode] = React.useState("");
+  const [discountDescription, setDiscountDescription] = React.useState("");
+  const [discountPercent, setDiscountPercent] = React.useState(10);
+  const [discountAmount, setDiscountAmount] = React.useState(0);
+  const [discountAcumulativo, setDiscountAcumulativo] = React.useState(false);
+  const [shippingCost, setShippingCost] = React.useState(0);
+
+  // Suggests a subtotal from the product's price × quantity, but never
+  // overrides a value the user has already typed directly into the field.
+  function suggestSubtotal(nextProductId: string, nextQuantity: number) {
+    if (subtotalTouched) return;
     const product = products.find((p) => p.id === nextProductId);
-    if (product?.price) setTotalAmount(product.price * nextQuantity);
+    if (product?.price) setSubtotal(product.price * nextQuantity);
   }
 
   function handleProductChange(nextProductId: string) {
     setProductId(nextProductId);
-    suggestTotal(nextProductId, quantity);
+    suggestSubtotal(nextProductId, quantity);
   }
 
   function handleQuantityChange(nextQuantity: number) {
     setQuantity(nextQuantity);
-    suggestTotal(productId, nextQuantity);
+    suggestSubtotal(productId, nextQuantity);
   }
+
+  // Opens the same Contact form used in Contatos, stacked on top of the sale
+  // drawer via the modal slot — the sale form stays open behind it, and the
+  // new contact comes back selected here without a second, duplicate form.
+  function openNewContact() {
+    openModal({
+      title: "Novo contato",
+      description: "Comece com o nome — você pode detalhar depois.",
+      content: (
+        <ContactForm
+          onDone={closeModal}
+          onCreated={(created: Contact) => setContactId(created.id)}
+        />
+      ),
+    });
+  }
+
+  const discount =
+    discountKind === NO_DISCOUNT
+      ? undefined
+      : {
+          kind: discountKind,
+          code: discountCode.trim() || undefined,
+          description: discountDescription.trim() || undefined,
+          percent: discountKind === "percentual" ? discountPercent : undefined,
+          amount: discountKind === "valor_fixo" ? discountAmount : undefined,
+          acumulativo: discountAcumulativo || undefined,
+        };
+
+  const breakdown = calculateSaleBreakdown({ subtotal, discount, shippingCost });
 
   function handleSubmit() {
     if (!productId) {
@@ -78,8 +135,8 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
       toast.error("Selecione a data da venda.");
       return;
     }
-    if (totalAmount <= 0) {
-      toast.error("Informe o valor total da venda.");
+    if (subtotal <= 0) {
+      toast.error("Informe o valor da venda.");
       return;
     }
 
@@ -88,8 +145,12 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
       contactId: contactId || undefined,
       productId,
       quantity,
-      couponCode: couponCode || undefined,
-      totalAmount,
+      couponCode: discount?.code,
+      subtotal,
+      discount,
+      shippingAmount: breakdown.shippingAmount,
+      shippingCost,
+      totalAmount: breakdown.totalAmount,
       channel,
       notes: notes || undefined,
     });
@@ -120,6 +181,8 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
             value={contactId}
             onValueChange={setContactId}
             placeholder="Selecionar contato"
+            onCreateNew={openNewContact}
+            createLabel="Adicionar novo contato"
           />
         </Field>
 
@@ -132,19 +195,103 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
           />
         </Field>
 
-        <Field label="Cupom" optional>
-          <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="Ex: BEMVINDO10" />
-        </Field>
-
-        <Field label="Valor total" hint="Sugerido a partir do preço do produto — ajuste se necessário.">
+        <Field label="Subtotal" hint="Sugerido a partir do preço do produto — ajuste se necessário.">
           <CurrencyInput
-            value={totalAmount}
+            value={subtotal}
             onValueChange={(value) => {
-              setTotalAmount(value);
-              setTotalTouched(true);
+              setSubtotal(value);
+              setSubtotalTouched(true);
             }}
           />
         </Field>
+
+        <Field label="Frete" optional hint="Custo real de frete para a marca. Cobrado do cliente, a menos que o cupom seja frete grátis.">
+          <CurrencyInput value={shippingCost} onValueChange={setShippingCost} />
+        </Field>
+
+        <CollapsibleSection label="Adicionar cupom/desconto" defaultOpen={discountKind !== NO_DISCOUNT}>
+          <Field label="Tipo de desconto">
+            <Select value={discountKind} onValueChange={(value) => setDiscountKind(value as DiscountKindOption)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {DISCOUNT_KIND_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          {discountKind !== NO_DISCOUNT ? (
+            <>
+              <Field label="Código do cupom" optional>
+                <Input value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} placeholder="Ex: BEMVINDO10" />
+              </Field>
+
+              {discountKind === "percentual" ? (
+                <Field label="Percentual de desconto">
+                  <div className="flex max-w-32 items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={discountPercent}
+                      onChange={(e) => setDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                    />
+                    <span className="text-body text-muted-foreground">%</span>
+                  </div>
+                </Field>
+              ) : null}
+
+              {discountKind === "valor_fixo" ? (
+                <Field label="Valor do desconto">
+                  <CurrencyInput value={discountAmount} onValueChange={setDiscountAmount} />
+                </Field>
+              ) : null}
+
+              <Field label="Descrição" optional>
+                <Input
+                  value={discountDescription}
+                  onChange={(e) => setDiscountDescription(e.target.value)}
+                  placeholder="Ex: Cliente recorrente, campanha de aniversário..."
+                />
+              </Field>
+
+              <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+                <span className="text-body text-foreground">Acumulativo com outras promoções</span>
+                <Switch checked={discountAcumulativo} onCheckedChange={setDiscountAcumulativo} />
+              </div>
+            </>
+          ) : null}
+        </CollapsibleSection>
+
+        <div className="flex flex-col gap-1.5 rounded-lg bg-paper-mist p-3">
+          <div className="flex justify-between text-body">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span className="text-foreground">{formatCurrencyCents(breakdown.subtotal)}</span>
+          </div>
+          {breakdown.discountAmount > 0 ? (
+            <div className="flex justify-between text-body">
+              <span className="text-muted-foreground">Desconto concedido</span>
+              <span className="text-destructive">− {formatCurrencyCents(breakdown.discountAmount)}</span>
+            </div>
+          ) : null}
+          {shippingCost > 0 ? (
+            <div className="flex justify-between text-body">
+              <span className="text-muted-foreground">Frete cobrado do cliente</span>
+              <span className="text-foreground">{formatCurrencyCents(breakdown.shippingAmount)}</span>
+            </div>
+          ) : null}
+          {shippingCost > 0 && breakdown.shippingAmount !== shippingCost ? (
+            <div className="flex justify-between text-caption text-muted-foreground">
+              <span>Custo de frete para a marca (não cobrado)</span>
+              <span>{formatCurrencyCents(shippingCost)}</span>
+            </div>
+          ) : null}
+          <div className="flex justify-between border-t border-border pt-1.5 text-body-lg font-medium">
+            <span className="text-foreground">Total pago pelo cliente</span>
+            <span className="text-foreground">{formatCurrencyCents(breakdown.totalAmount)}</span>
+          </div>
+        </div>
 
         <Field label="Canal">
           <Select value={channel} onValueChange={(value) => setChannel(value as SalesChannel)}>

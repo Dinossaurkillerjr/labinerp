@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -26,6 +26,8 @@ export function Combobox({
   placeholder = "Selecionar...",
   emptyText = "Nenhum resultado.",
   className,
+  onCreateNew,
+  createLabel = "Adicionar novo",
 }: {
   options: ComboboxOption[];
   value?: string;
@@ -33,6 +35,9 @@ export function Combobox({
   placeholder?: string;
   emptyText?: string;
   className?: string;
+  /** When set, shows a persistent "add new" row that opens a create flow instead of picking an existing option. */
+  onCreateNew?: () => void;
+  createLabel?: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const selected = options.find((option) => option.value === value);
@@ -79,6 +84,22 @@ export function Combobox({
             </CommandGroup>
           </CommandList>
         </Command>
+        {onCreateNew ? (
+          <>
+            <div className="h-px bg-border" />
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-b-xl px-3 py-2 text-left text-body text-foreground hover:bg-accent"
+              onClick={() => {
+                setOpen(false);
+                onCreateNew();
+              }}
+            >
+              <Plus className="size-4" />
+              {createLabel}
+            </button>
+          </>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

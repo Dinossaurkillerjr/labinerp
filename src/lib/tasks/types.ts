@@ -1,5 +1,7 @@
 // Domain types for the Tarefas module (Phase 4).
 
+import type { EntityTag } from "@/lib/tags";
+
 export type TaskStatus = "a_fazer" | "em_andamento" | "concluido";
 
 export type TaskPriority = "baixa" | "media" | "alta";
@@ -39,6 +41,8 @@ export type Task = {
   completedAt?: string;
   /** Manual ordering within a day, used by "Planejar amanhã". Lower comes first. */
   order?: number;
+  /** Used for a small color strip on the Kanban card — first tag wins. */
+  tags?: EntityTag[];
 };
 
 /** A status column, customizable but kept simple — no branching workflow rules. */

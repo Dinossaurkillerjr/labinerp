@@ -179,7 +179,23 @@ export function ProductForm({ product, onDone }: { product?: Product; onDone: ()
             <Input value={colors} onChange={(e) => setColors(e.target.value)} placeholder="Preto, Branco" />
           </Field>
           <Field label="Imagem" optional hint="URL da imagem">
-            <Input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." />
+            <div className="flex items-start gap-3">
+              <Input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." className="flex-1" />
+              {image ? (
+                // eslint-disable-next-line @next/next/no-img-element -- external, arbitrary URL; next/image would require configuring every possible remote host
+                <img
+                  src={image}
+                  alt=""
+                  className="size-10 shrink-0 rounded-md border border-border object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.visibility = "hidden";
+                  }}
+                  onLoad={(e) => {
+                    e.currentTarget.style.visibility = "visible";
+                  }}
+                />
+              ) : null}
+            </div>
           </Field>
           <Field label="Descrição" optional>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />

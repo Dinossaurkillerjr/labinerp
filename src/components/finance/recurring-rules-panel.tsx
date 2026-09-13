@@ -19,8 +19,8 @@ export function RecurringRulesPanel() {
   function openNewRecurrence() {
     openDrawer({
       title: "Nova recorrência",
-      description: "Escolha o modo Recorrente para gerar lançamentos futuros automaticamente.",
-      content: <TransactionForm onDone={closeDrawer} defaultType="expense" />,
+      description: "Lançamentos futuros são gerados automaticamente a partir da data de início.",
+      content: <TransactionForm onDone={closeDrawer} defaultType="expense" defaultMode="recorrente" />,
     });
   }
 

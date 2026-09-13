@@ -1,16 +1,59 @@
 "use client";
 
+import * as React from "react";
 import { toast } from "sonner";
+import { ArrowUp, ArrowDown, Plus, X } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { Field } from "@/components/common/field";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useSettings } from "@/lib/settings/settings-provider";
 import { DASHBOARD_WIDGETS } from "@/lib/settings/types";
+import type { PipelineStage } from "@/lib/contacts/pipeline";
+
+let stageIdCounter = 0;
+function newStageId() {
+  stageIdCounter += 1;
+  return `estagio-${Date.now()}-${stageIdCounter}`;
+}
 
 export default function ConfiguracoesPage() {
   const { settings, updateSettings, toggleWidget } = useSettings();
+  const [newStageLabel, setNewStageLabel] = React.useState("");
+  const stages = settings.pipelineStages;
+
+  function updateStages(next: PipelineStage[]) {
+    updateSettings({ pipelineStages: next });
+  }
+
+  function renameStage(id: string, label: string) {
+    updateStages(stages.map((s) => (s.id === id ? { ...s, label } : s)));
+  }
+
+  function removeStage(id: string) {
+    if (stages.length <= 1) {
+      toast.error("Mantenha pelo menos um estágio.");
+      return;
+    }
+    updateStages(stages.filter((s) => s.id !== id));
+    toast.success("Estágio removido. Contatos nesse estágio caem no primeiro estágio da lista.");
+  }
+
+  function moveStage(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= stages.length) return;
+    const next = [...stages];
+    [next[index], next[target]] = [next[target], next[index]];
+    updateStages(next);
+  }
+
+  function addStage() {
+    if (!newStageLabel.trim()) return;
+    updateStages([...stages, { id: newStageId(), label: newStageLabel.trim() }]);
+    setNewStageLabel("");
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,6 +115,52 @@ export default function ConfiguracoesPage() {
                 />
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Pipeline de contatos (CRM)</CardTitle>
+          <CardDescription>Personalize os estágios usados no Kanban de Contatos.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {stages.map((stage, index) => (
+            <div key={stage.id} className="flex items-center gap-2">
+              <Input value={stage.label} onChange={(e) => renameStage(stage.id, e.target.value)} className="flex-1" />
+              <Button variant="ghost" size="icon-sm" aria-label="Mover para cima" disabled={index === 0} onClick={() => moveStage(index, -1)}>
+                <ArrowUp className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Mover para baixo"
+                disabled={index === stages.length - 1}
+                onClick={() => moveStage(index, 1)}
+              >
+                <ArrowDown className="size-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label="Remover estágio" onClick={() => removeStage(stage.id)}>
+                <X className="size-3.5" />
+              </Button>
+            </div>
+          ))}
+          <div className="flex items-center gap-2 pt-2">
+            <Input
+              value={newStageLabel}
+              onChange={(e) => setNewStageLabel(e.target.value)}
+              placeholder="Novo estágio..."
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addStage();
+                }
+              }}
+            />
+            <Button variant="outline" size="icon" onClick={addStage} aria-label="Adicionar estágio">
+              <Plus className="size-4" />
+            </Button>
           </div>
         </CardContent>
       </Card>

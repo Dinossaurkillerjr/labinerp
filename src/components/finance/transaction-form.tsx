@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DrawerForm, DrawerFormActions } from "@/components/common/drawer-form";
 import { useFinance } from "@/lib/finance/finance-provider";
-import { GROUPS_BY_TYPE, PAYMENT_SOURCE_LABELS } from "@/lib/finance/categories";
+import { GROUPS_BY_TYPE, PAYMENT_SOURCE_LABELS, capitalCategoryFor } from "@/lib/finance/categories";
 import type { PaymentSource, Transaction, TransactionType } from "@/lib/finance/types";
 
 const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
@@ -62,10 +62,12 @@ export function TransactionForm({
   transaction,
   onDone,
   defaultType,
+  defaultMode,
 }: {
   transaction?: Transaction;
   onDone: () => void;
   defaultType?: TransactionType;
+  defaultMode?: "unico" | "parcelado" | "recorrente";
 }) {
   const {
     categories,
@@ -77,9 +79,11 @@ export function TransactionForm({
   } = useFinance();
 
   const isEditing = Boolean(transaction);
-  const [mode, setMode] = React.useState<"unico" | "parcelado" | "recorrente">("unico");
+  const [mode, setMode] = React.useState<"unico" | "parcelado" | "recorrente">(defaultMode ?? "unico");
   const [type, setType] = React.useState<TransactionType>(transaction?.type ?? defaultType ?? "expense");
-  const [category, setCategory] = React.useState(transaction?.category ?? "");
+  const [category, setCategory] = React.useState(
+    transaction?.category ?? capitalCategoryFor(defaultType ?? "expense") ?? ""
+  );
   const [description, setDescription] = React.useState(transaction?.description ?? "");
   const [amount, setAmount] = React.useState(transaction?.amount ?? 0);
   const [date, setDate] = React.useState<Date | undefined>(toDate(transaction?.date) ?? new Date());
@@ -102,6 +106,11 @@ export function TransactionForm({
 
   function handleTypeChange(nextType: TransactionType) {
     setType(nextType);
+    const capitalCategory = capitalCategoryFor(nextType);
+    if (capitalCategory) {
+      setCategory(capitalCategory);
+      return;
+    }
     const allowedGroups = GROUPS_BY_TYPE[nextType] as readonly string[];
     const categoryStillValid = categories.some(
       (c) => c.id === category && allowedGroups.includes(c.group)
@@ -109,6 +118,7 @@ export function TransactionForm({
     if (!categoryStillValid) setCategory("");
   }
 
+  const isCapitalType = type === "owner_contribution" || type === "owner_withdrawal";
   const canUseModes = !isEditing && (type === "expense" || type === "income");
   const statusLabels = STATUS_LABEL_BY_TYPE[type];
   const monthClosed = date ? isMonthClosed(toISODate(date)) : false;
@@ -217,14 +227,16 @@ export function TransactionForm({
           </Tabs>
         ) : null}
 
-        <Field label="Categoria">
-          <Combobox
-            options={categoryOptions}
-            value={category}
-            onValueChange={setCategory}
-            placeholder="Selecionar categoria"
-          />
-        </Field>
+        {isCapitalType ? null : (
+          <Field label="Categoria">
+            <Combobox
+              options={categoryOptions}
+              value={category}
+              onValueChange={setCategory}
+              placeholder="Selecionar categoria"
+            />
+          </Field>
+        )}
 
         <Field label="Descrição">
           <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Venda Instagram" />

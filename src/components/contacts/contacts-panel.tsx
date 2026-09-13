@@ -19,36 +19,30 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
-import { StatusBadge, type Status } from "@/components/common/status-badge";
+import { Tag } from "@/components/common/tag";
 import { useContacts } from "@/lib/contacts/contacts-provider";
+import { useSettings } from "@/lib/settings/settings-provider";
 import { useUI } from "@/components/providers/ui-provider";
 import { ContactForm } from "@/components/contacts/contact-form";
 import { ContactDetail } from "@/components/contacts/contact-detail";
-import type { Contact, ContactStatus } from "@/lib/contacts/types";
-
-const STATUS_MAP: Record<ContactStatus, Status> = {
-  lead: "rascunho",
-  cliente: "concluido",
-  recorrente: "concluido",
-  inativo: "cancelado",
-};
-
-const STATUS_LABELS: Record<ContactStatus, string> = {
-  lead: "Lead",
-  cliente: "Cliente",
-  recorrente: "Recorrente",
-  inativo: "Inativo",
-};
+import { ContactsKanban } from "@/components/contacts/contacts-kanban";
+import { resolveStageId } from "@/lib/contacts/pipeline";
+import type { Contact } from "@/lib/contacts/types";
 
 export function ContactsPanel() {
   const { contacts, deleteContact } = useContacts();
+  const { settings } = useSettings();
   const { openDrawer, closeDrawer, confirm } = useUI();
+  const [view, setView] = React.useState<"lista" | "pipeline">("lista");
   const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<ContactStatus | "todos">("todos");
+  const [stageFilter, setStageFilter] = React.useState<string>("todos");
+  const stages = settings.pipelineStages;
+  const stageLabel = new Map(stages.map((s) => [s.id, s.label]));
 
   const filtered = contacts
-    .filter((c) => (statusFilter === "todos" ? true : c.status === statusFilter))
+    .filter((c) => (stageFilter === "todos" ? true : resolveStageId(c, stages) === stageFilter))
     .filter((c) => (search.trim() ? c.name.toLowerCase().includes(search.trim().toLowerCase()) : true));
 
   function openCreate() {
@@ -94,7 +88,19 @@ export function ContactsPanel() {
     },
     { key: "whatsapp", header: "WhatsApp", render: (row) => row.whatsapp ?? "—" },
     { key: "instagram", header: "Instagram", render: (row) => row.instagram ?? "—" },
-    { key: "status", header: "Status", render: (row) => <StatusBadge status={STATUS_MAP[row.status]} /> },
+    { key: "stage", header: "Estágio", render: (row) => <Tag color="blue">{stageLabel.get(resolveStageId(row, stages)) ?? "—"}</Tag> },
+    {
+      key: "tags",
+      header: "Tags",
+      render: (row) =>
+        row.tags?.length ? (
+          <div className="flex flex-wrap gap-1">
+            {row.tags.map((tag) => <Tag key={tag.id} color={tag.color}>{tag.label}</Tag>)}
+          </div>
+        ) : (
+          "—"
+        ),
+    },
     {
       key: "actions",
       header: "",
@@ -123,38 +129,52 @@ export function ContactsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar contato..." className="pl-8" />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os status</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {view === "lista" ? (
+          <Select value={stageFilter} onValueChange={setStageFilter}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os estágios</SelectItem>
+              {stages.map((stage) => (
+                <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+
+        <Tabs value={view} onValueChange={(v) => setView(v as typeof view)}>
+          <TabsList>
+            <TabsTrigger value="lista">Lista</TabsTrigger>
+            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <Button className="ml-auto" onClick={openCreate}>
           <Plus className="size-4" />
           Novo contato
         </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        emptyTitle="Nenhum contato cadastrado"
-        emptyDescription="Crie seu primeiro contato — nome e WhatsApp já bastam para começar."
-        emptyAction={
-          <Button onClick={openCreate}>
-            <Plus className="size-4" />
-            Adicionar contato
-          </Button>
-        }
-      />
+      {view === "lista" ? (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          emptyTitle="Nenhum contato cadastrado"
+          emptyDescription="Crie seu primeiro contato — nome e WhatsApp já bastam para começar."
+          emptyAction={
+            <Button onClick={openCreate}>
+              <Plus className="size-4" />
+              Adicionar contato
+            </Button>
+          }
+        />
+      ) : (
+        <ContactsKanban contacts={filtered} />
+      )}
     </div>
   );
 }

@@ -73,7 +73,26 @@ export function ProductsPanel() {
   }
 
   const columns: DataTableColumn<Product>[] = [
-    { key: "name", header: "Produto", render: (row) => <span className="text-foreground">{row.name}</span> },
+    {
+      key: "name",
+      header: "Produto",
+      render: (row) => (
+        <div className="flex items-center gap-2.5">
+          {row.image ? (
+            // eslint-disable-next-line @next/next/no-img-element -- external, arbitrary URL
+            <img
+              src={row.image}
+              alt=""
+              className="size-8 shrink-0 rounded-md border border-border object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : null}
+          <span className="text-foreground">{row.name}</span>
+        </div>
+      ),
+    },
     {
       key: "cost",
       header: "Custo",

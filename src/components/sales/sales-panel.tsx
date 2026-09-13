@@ -20,7 +20,7 @@ import { useUI } from "@/components/providers/ui-provider";
 import { SaleForm } from "@/components/sales/sale-form";
 import { calculateSaleProfit } from "@/lib/sales/calculations";
 import { formatCurrencyCents, formatSignedCurrencyCents } from "@/lib/currency";
-import type { Sale, SalesChannel } from "@/lib/sales/types";
+import type { DiscountKind, Sale, SalesChannel } from "@/lib/sales/types";
 
 const CHANNEL_TAG_COLOR: Record<SalesChannel, TagColor> = {
   nuvemshop: "blue",
@@ -34,6 +34,12 @@ const CHANNEL_LABELS: Record<SalesChannel, string> = {
   instagram: "Instagram",
   whatsapp: "WhatsApp",
   outro: "Outro",
+};
+
+const DISCOUNT_KIND_SHORT_LABEL: Record<DiscountKind, string> = {
+  percentual: "% desconto",
+  valor_fixo: "desconto fixo",
+  frete_gratis: "frete grátis",
 };
 
 export function SalesPanel() {
@@ -77,7 +83,22 @@ export function SalesPanel() {
     { key: "contact", header: "Cliente", render: (row) => (row.contactId ? getContact(row.contactId)?.name ?? "—" : "—") },
     { key: "quantity", header: "Qtd", align: "right", render: (row) => row.quantity },
     { key: "channel", header: "Canal", render: (row) => <Tag color={CHANNEL_TAG_COLOR[row.channel]}>{CHANNEL_LABELS[row.channel]}</Tag> },
-    { key: "total", header: "Valor", align: "right", render: (row) => formatCurrencyCents(row.totalAmount) },
+    {
+      key: "total",
+      header: "Valor",
+      align: "right",
+      render: (row) => (
+        <div className="flex flex-col items-end">
+          <span>{formatCurrencyCents(row.totalAmount)}</span>
+          {row.discount ? (
+            <span className="text-caption text-muted-foreground">
+              {DISCOUNT_KIND_SHORT_LABEL[row.discount.kind]}
+              {row.discount.code ? ` · ${row.discount.code}` : ""}
+            </span>
+          ) : null}
+        </div>
+      ),
+    },
     {
       key: "profit",
       header: "Lucro estimado",

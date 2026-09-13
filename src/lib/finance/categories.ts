@@ -1,4 +1,4 @@
-import type { Category } from "./types";
+import type { Category, TransactionType } from "./types";
 
 export const DEFAULT_CATEGORIES: Category[] = [
   // Receitas
@@ -57,3 +57,15 @@ export const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   owner_contribution: "Aporte",
   owner_withdrawal: "Retirada",
 };
+
+/**
+ * Aporte/Retirada each have exactly one possible category ("aporte"/"retirada"),
+ * so the type alone already determines it — asking the user to also pick a
+ * category from a one-item list would just be the same choice twice. Callers
+ * use this to auto-set the category and hide the category picker for these types.
+ */
+export function capitalCategoryFor(type: TransactionType): string | null {
+  if (type === "owner_contribution") return "aporte";
+  if (type === "owner_withdrawal") return "retirada";
+  return null;
+}

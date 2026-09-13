@@ -390,7 +390,7 @@ export function CanvasBoard() {
       onDragOver={(e) => e.preventDefault()}
       onPaste={handlePaste}
       onKeyDown={handleKeyDown}
-      className="relative h-full w-full touch-none overflow-hidden rounded-xl border border-border bg-canvas-white outline-none"
+      className="relative h-full w-full touch-none select-none overflow-hidden rounded-xl border border-border bg-canvas-white outline-none"
       style={{
         backgroundImage: "radial-gradient(circle, var(--color-ash) 1px, transparent 1px)",
         backgroundSize: `${GRID_SIZE * viewport.scale}px ${GRID_SIZE * viewport.scale}px`,

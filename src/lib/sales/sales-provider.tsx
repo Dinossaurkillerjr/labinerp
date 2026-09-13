@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Sale, SalesChannel } from "./types";
+import type { Discount, Sale, SalesChannel } from "./types";
 import { salesReducer, type SalesAction, type SalesState } from "./sales-reducer";
 import { SEED_SALES } from "./seed";
 import { buildIncomeTransactionInput } from "./calculations";
@@ -30,6 +30,10 @@ export type NewSaleInput = {
   productId: string;
   quantity: number;
   couponCode?: string;
+  subtotal?: number;
+  discount?: Discount;
+  shippingAmount?: number;
+  shippingCost?: number;
   totalAmount: number;
   channel: SalesChannel;
   notes?: string;

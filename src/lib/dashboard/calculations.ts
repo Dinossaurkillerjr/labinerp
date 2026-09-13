@@ -10,7 +10,7 @@ import type { Product } from "@/lib/catalog/types";
 import type { Contact } from "@/lib/contacts/types";
 import { buildSalesReport } from "@/lib/reports/sales-report";
 import type { PeriodRange } from "@/lib/reports/period-range";
-import { previousPeriodRange } from "@/lib/reports/period-range";
+import { percentChange, previousPeriodRange } from "@/lib/reports/period-range";
 import type { Task } from "@/lib/tasks/types";
 import { filterByPeriod, isOverdue as isTaskOverdue } from "@/lib/tasks/filters";
 
@@ -29,11 +29,6 @@ export type VendasKpi = {
   variacaoFaturamentoPercent?: number;
   variacaoQuantidadePercent?: number;
 };
-
-function percentChange(current: number, previous: number): number | undefined {
-  if (previous <= 0) return undefined; // "quando houver dados suficientes"
-  return ((current - previous) / previous) * 100;
-}
 
 export function buildVendasKpi(sales: Sale[], products: Product[], contacts: Contact[], range: PeriodRange): VendasKpi {
   const current = buildSalesReport(sales, products, contacts, range);

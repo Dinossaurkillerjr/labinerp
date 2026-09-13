@@ -1,5 +1,7 @@
 // App-wide, single-user preferences — small and flat on purpose.
 
+import { DEFAULT_PIPELINE_STAGES, type PipelineStage } from "@/lib/contacts/pipeline";
+
 export type Settings = {
   /** Products at or below this margin trigger a "Margem baixa" notification. */
   marginThresholdPercent: number;
@@ -7,12 +9,15 @@ export type Settings = {
   dashboardDetailed: boolean;
   /** Ids of dashboard widgets the user chose to hide. */
   hiddenDashboardWidgets: string[];
+  /** Contatos CRM pipeline stages — user-customizable (add/rename/remove). */
+  pipelineStages: PipelineStage[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   marginThresholdPercent: 15,
   dashboardDetailed: false,
   hiddenDashboardWidgets: [],
+  pipelineStages: DEFAULT_PIPELINE_STAGES,
 };
 
 export const DASHBOARD_WIDGETS = [

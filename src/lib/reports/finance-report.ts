@@ -9,7 +9,7 @@ import {
   type Resultado,
 } from "@/lib/finance/calculations";
 import { formatMonthLabel } from "@/lib/finance/period";
-import type { PeriodRange } from "./period-range";
+import { percentChange, previousPeriodRange, type PeriodRange } from "./period-range";
 
 export type FinanceReport = {
   resultado: Resultado;
@@ -60,4 +60,46 @@ export function buildFinanceReport(
   });
 
   return { resultado, cashFlow, capital, despesasPorCategoria, lucroEvolucao };
+}
+
+export type FinanceComparison = {
+  range: PeriodRange;
+  previousRange: PeriodRange;
+  current: Resultado;
+  previous: Resultado;
+  /** custoProdutos + despesasOperacionais, the same "despesas" total shown across Relatórios. */
+  currentDespesasTotais: number;
+  previousDespesasTotais: number;
+  receitaVariacaoPercent?: number;
+  despesasVariacaoPercent?: number;
+  lucroVariacaoPercent?: number;
+};
+
+/**
+ * Receita × despesas do período selecionado comparado ao período anterior de
+ * mesma duração. Reutiliza calculateResultado e previousPeriodRange — nenhuma
+ * regra financeira nova é criada aqui, só composição para exibição.
+ */
+export function buildFinanceComparison(
+  transactions: Transaction[],
+  categories: Category[],
+  range: PeriodRange
+): FinanceComparison {
+  const previousRange = previousPeriodRange(range);
+  const current = calculateResultado(transactions, range, categories);
+  const previous = calculateResultado(transactions, previousRange, categories);
+  const currentDespesasTotais = current.custoProdutos + current.despesasOperacionais;
+  const previousDespesasTotais = previous.custoProdutos + previous.despesasOperacionais;
+
+  return {
+    range,
+    previousRange,
+    current,
+    previous,
+    currentDespesasTotais,
+    previousDespesasTotais,
+    receitaVariacaoPercent: percentChange(current.receita, previous.receita),
+    despesasVariacaoPercent: percentChange(currentDespesasTotais, previousDespesasTotais),
+    lucroVariacaoPercent: percentChange(current.lucroLiquido, previous.lucroLiquido),
+  };
 }
