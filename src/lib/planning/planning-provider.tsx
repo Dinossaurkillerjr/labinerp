@@ -8,16 +8,29 @@ import {
   type PlanningState,
 } from "./planning-reducer";
 import type { BudgetKind, CategoryBudget, ProfitAllocation } from "./types";
-import { usePersistentReducer } from "@/lib/persistent-reducer";
-
-const STORAGE_KEY = "erp-planning-v1";
+import { useSupabaseReducer } from "@/lib/supabase/use-supabase-reducer";
+import { diffByKey } from "@/lib/supabase/diff-collection";
+import { deleteAllocations, deleteBudgets, fetchAllocations, fetchBudgets, upsertAllocations, upsertBudgets } from "./repository";
 
 function nowISO(): string {
   return new Date().toISOString();
 }
 
-function seededState(): PlanningState {
-  return EMPTY_PLANNING_STATE;
+async function fetchInitial(userId: string): Promise<PlanningState> {
+  const [allocations, budgets] = await Promise.all([fetchAllocations(userId), fetchBudgets(userId)]);
+  return { allocations, budgets };
+}
+
+async function sync(userId: string, previous: PlanningState, next: PlanningState): Promise<void> {
+  const allocationsDiff = diffByKey((a) => a.monthId, previous.allocations, next.allocations);
+  const budgetsDiff = diffByKey((b) => b.categoryId, previous.budgets, next.budgets);
+
+  await Promise.all([
+    upsertAllocations(userId, [...allocationsDiff.inserted, ...allocationsDiff.updated]),
+    deleteAllocations(userId, allocationsDiff.deletedIds),
+    upsertBudgets(userId, [...budgetsDiff.inserted, ...budgetsDiff.updated]),
+    deleteBudgets(userId, budgetsDiff.deletedIds),
+  ]);
 }
 
 export type ProfitAllocationInput = {
@@ -42,11 +55,12 @@ type PlanningContextValue = {
 const PlanningContext = React.createContext<PlanningContextValue | null>(null);
 
 export function PlanningProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = usePersistentReducer<PlanningState, PlanningAction>(
+  const [state, dispatch] = useSupabaseReducer<PlanningState, PlanningAction>(
     planningReducer,
-    seededState,
-    STORAGE_KEY,
-    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState })
+    EMPTY_PLANNING_STATE,
+    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState }),
+    fetchInitial,
+    sync
   );
 
   const value = React.useMemo<PlanningContextValue>(

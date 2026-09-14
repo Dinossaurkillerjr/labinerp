@@ -14,6 +14,7 @@ import { DEFAULT_CATEGORIES } from "./categories";
 import {
   EMPTY_FINANCE_STATE,
   financeReducer,
+  type FinanceAction,
   type FinanceState,
 } from "./store-reducer";
 import {
@@ -21,13 +22,26 @@ import {
   splitAmountIntoInstallments,
 } from "./calculations";
 import { generateMissingOccurrences } from "./recurrence";
+import { useSupabaseReducer } from "@/lib/supabase/use-supabase-reducer";
+import { diffById } from "@/lib/supabase/diff-collection";
 import {
-  SEED_INSTALLMENT_TRANSACTIONS,
-  SEED_RECURRING_RULES,
-  SEED_TRANSACTIONS,
-} from "./seed";
+  deleteCustomCategories,
+  deleteInstallmentGroups,
+  deleteMonthClosings,
+  deleteRecurringRules,
+  deleteTransactionRows,
+  fetchCustomCategories,
+  fetchInstallmentGroups,
+  fetchMonthClosings,
+  fetchRecurringRules,
+  fetchTransactions,
+  upsertCustomCategories,
+  upsertInstallmentGroups,
+  upsertMonthClosings,
+  upsertRecurringRules,
+  upsertTransactions,
+} from "./repository";
 
-const STORAGE_KEY = "erp-finance-v1";
 const RECURRENCE_HORIZON_MONTHS = 2;
 
 function makeId(): string {
@@ -45,39 +59,58 @@ function todayISO(): string {
   return nowISO().slice(0, 10);
 }
 
-function seededState(): FinanceState {
+/**
+ * Fetches every Financeiro sub-collection, then generates any recurring
+ * occurrences that are due but missing (exactly like the old localStorage
+ * version did right after hydrating) — persisting the newly generated
+ * transactions immediately, since they won't exist in `previous` for the
+ * sync effect to pick up otherwise.
+ */
+async function fetchInitial(userId: string): Promise<FinanceState> {
+  const [transactions, customCategories, installmentGroups, recurringRules, monthClosings] = await Promise.all([
+    fetchTransactions(userId),
+    fetchCustomCategories(userId),
+    fetchInstallmentGroups(userId),
+    fetchRecurringRules(userId),
+    fetchMonthClosings(userId),
+  ]);
+
+  const horizon = addMonthsToISODate(todayISO(), RECURRENCE_HORIZON_MONTHS);
+  const generated = recurringRules.flatMap((rule) =>
+    generateMissingOccurrences(rule, transactions, horizon, makeId, nowISO())
+  );
+  if (generated.length > 0) {
+    await upsertTransactions(userId, generated);
+  }
+
   return {
-    ...EMPTY_FINANCE_STATE,
-    transactions: [...SEED_TRANSACTIONS, ...SEED_INSTALLMENT_TRANSACTIONS],
-    recurringRules: SEED_RECURRING_RULES,
-    installmentGroups: [
-      {
-        id: "seed-group-1",
-        description: "Máquina de costura — 3x",
-        totalAmount: 60000,
-        installmentsCount: 3,
-        createdAt: nowISO(),
-      },
-    ],
+    transactions: [...transactions, ...generated],
+    customCategories,
+    installmentGroups,
+    recurringRules,
+    monthClosings,
   };
 }
 
-/**
- * Reads whatever was persisted in localStorage, if anything valid is there.
- * Client-only: must never run during the initial (server-matching) render,
- * or React's hydration will see a mismatch — see the effect in FinanceProvider.
- */
-function loadPersistedState(): FinanceState | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as FinanceState;
-    if (!parsed.transactions) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+async function sync(userId: string, previous: FinanceState, next: FinanceState): Promise<void> {
+  const transactionsDiff = diffById(previous.transactions, next.transactions);
+  const categoriesDiff = diffById(previous.customCategories, next.customCategories);
+  const installmentGroupsDiff = diffById(previous.installmentGroups, next.installmentGroups);
+  const recurringRulesDiff = diffById(previous.recurringRules, next.recurringRules);
+  const monthClosingsDiff = diffById(previous.monthClosings, next.monthClosings);
+
+  await Promise.all([
+    upsertTransactions(userId, [...transactionsDiff.inserted, ...transactionsDiff.updated]),
+    deleteTransactionRows(userId, transactionsDiff.deletedIds),
+    upsertCustomCategories(userId, [...categoriesDiff.inserted, ...categoriesDiff.updated]),
+    deleteCustomCategories(userId, categoriesDiff.deletedIds),
+    upsertInstallmentGroups(userId, [...installmentGroupsDiff.inserted, ...installmentGroupsDiff.updated]),
+    deleteInstallmentGroups(userId, installmentGroupsDiff.deletedIds),
+    upsertRecurringRules(userId, [...recurringRulesDiff.inserted, ...recurringRulesDiff.updated]),
+    deleteRecurringRules(userId, recurringRulesDiff.deletedIds),
+    upsertMonthClosings(userId, [...monthClosingsDiff.inserted, ...monthClosingsDiff.updated]),
+    deleteMonthClosings(userId, monthClosingsDiff.deletedIds),
+  ]);
 }
 
 export type NewTransactionInput = {
@@ -116,6 +149,7 @@ type FinanceContextValue = {
   categories: Category[];
   recurringRules: RecurringRule[];
   monthClosings: FinanceState["monthClosings"];
+  installmentGroups: FinanceState["installmentGroups"];
   addTransaction: (input: NewTransactionInput) => Transaction;
   addInstallmentTransaction: (input: NewInstallmentInput) => Transaction[];
   updateTransaction: (id: string, changes: Partial<Transaction>) => void;
@@ -132,43 +166,13 @@ type FinanceContextValue = {
 const FinanceContext = React.createContext<FinanceContextValue | null>(null);
 
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
-  // Always starts from the same deterministic seed on both server and client,
-  // so the first client render matches the server-rendered HTML exactly.
-  const [state, dispatch] = React.useReducer(financeReducer, undefined, seededState);
-  const hydrated = React.useRef(false);
-  // Gates persistence until after the hydration effect below has run, so we
-  // never clobber real localStorage data with the server-matching seed.
-  const [ready, setReady] = React.useState(false);
-
-  // Client-only, once on mount: pull in whatever was actually persisted (if
-  // anything) and generate any missing recurring occurrences against it —
-  // done together so recurrence generation sees real history, not the seed.
-  React.useEffect(() => {
-    if (hydrated.current) return;
-    hydrated.current = true;
-
-    const persisted = loadPersistedState();
-    const baseState = persisted ?? state;
-
-    const horizon = addMonthsToISODate(todayISO(), RECURRENCE_HORIZON_MONTHS);
-    const newTransactions = baseState.recurringRules.flatMap((rule) =>
-      generateMissingOccurrences(rule, baseState.transactions, horizon, makeId, nowISO())
-    );
-
-    if (persisted || newTransactions.length > 0) {
-      dispatch({
-        type: "HYDRATE",
-        state: { ...baseState, transactions: [...baseState.transactions, ...newTransactions] },
-      });
-    }
-    setReady(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  React.useEffect(() => {
-    if (!ready || typeof window === "undefined") return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state, ready]);
+  const [state, dispatch] = useSupabaseReducer<FinanceState, FinanceAction>(
+    financeReducer,
+    EMPTY_FINANCE_STATE,
+    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState }),
+    fetchInitial,
+    sync
+  );
 
   const categories = React.useMemo<Category[]>(
     () => [...DEFAULT_CATEGORIES, ...state.customCategories],
@@ -296,6 +300,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       categories,
       recurringRules: state.recurringRules,
       monthClosings: state.monthClosings,
+      installmentGroups: state.installmentGroups,
       addTransaction,
       addInstallmentTransaction,
       updateTransaction,
@@ -308,7 +313,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       closeMonth,
       reopenMonth,
     };
-  }, [state, categories, isMonthClosed]);
+  }, [state, categories, isMonthClosed, dispatch]);
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 }

@@ -11,7 +11,6 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/layout/command-palette";
-import { Toaster } from "@/components/ui/sonner";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { cn } from "@/lib/utils";
 
@@ -192,7 +191,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
-      <Toaster position="bottom-right" />
     </UIContext.Provider>
   );
 }

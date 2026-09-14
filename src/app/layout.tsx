@@ -1,15 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { UIProvider } from "@/components/providers/ui-provider";
-import { AppShell } from "@/components/layout/app-shell";
-import { FinanceProvider } from "@/lib/finance/finance-provider";
-import { CatalogProvider } from "@/lib/catalog/catalog-provider";
-import { ContactsProvider } from "@/lib/contacts/contacts-provider";
-import { SalesProvider } from "@/lib/sales/sales-provider";
-import { TasksProvider } from "@/lib/tasks/tasks-provider";
-import { SettingsProvider } from "@/lib/settings/settings-provider";
-import { PlanningProvider } from "@/lib/planning/planning-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -26,30 +18,18 @@ export const metadata: Metadata = {
   description: "Sistema operacional interno da marca.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Deliberately minimal: no domain providers and no AppShell here — those
+// live in app/(app)/layout.tsx, scoped to the authenticated app only, so
+// /login never mounts a single Supabase-backed provider.
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="pt-BR"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SettingsProvider>
-          <FinanceProvider>
-            <PlanningProvider>
-              <CatalogProvider>
-                <ContactsProvider>
-                  <SalesProvider>
-                    <TasksProvider>
-                      <UIProvider>
-                        <AppShell>{children}</AppShell>
-                      </UIProvider>
-                    </TasksProvider>
-                  </SalesProvider>
-                </ContactsProvider>
-              </CatalogProvider>
-            </PlanningProvider>
-          </FinanceProvider>
-        </SettingsProvider>
+        {children}
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { useSettings } from "@/lib/settings/settings-provider";
 import { DASHBOARD_WIDGETS } from "@/lib/settings/types";
 import type { PipelineStage } from "@/lib/contacts/pipeline";
+import { ExportBackupButton } from "@/components/settings/export-backup-button";
 
 let stageIdCounter = 0;
 function newStageId() {
@@ -162,6 +163,16 @@ export default function ConfiguracoesPage() {
               <Plus className="size-4" />
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Backup</CardTitle>
+          <CardDescription>Exporte todos os dados do ERP em um único arquivo JSON.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ExportBackupButton />
         </CardContent>
       </Card>
     </div>

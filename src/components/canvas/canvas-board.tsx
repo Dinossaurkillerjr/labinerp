@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
 import { useCanvas } from "@/lib/canvas/canvas-provider";
 import { CanvasToolbar } from "@/components/canvas/canvas-toolbar";
 import { CanvasElementContent, elementBaseClassName } from "@/components/canvas/canvas-element-view";
@@ -14,7 +13,6 @@ import {
   createLinkElement,
   createGroupElement,
   createDrawingElement,
-  createImageElement,
   getNextZIndex,
   resizeElement,
   duplicateElement,
@@ -40,27 +38,9 @@ type DragState =
   | { kind: "select-rect"; startCanvas: Point; currentCanvas: Point }
   | { kind: "draw"; points: Point[] };
 
-function readImageFile(file: File): Promise<{ src: string; width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      const src = reader.result as string;
-      const img = new Image();
-      img.onload = () => {
-        const maxWidth = 420;
-        const scale = img.naturalWidth > maxWidth ? maxWidth / img.naturalWidth : 1;
-        resolve({ src, width: img.naturalWidth * scale, height: img.naturalHeight * scale });
-      };
-      img.onerror = () => resolve({ src, width: 240, height: 180 });
-      img.src = src;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 export function CanvasBoard() {
-  const { elements, addElements, updateElement, updateElements, deleteElements, undo, redo, canUndo, canRedo } = useCanvas();
+  const { elements, addElements, addImage, updateElement, updateElements, deleteElements, undo, redo, canUndo, canRedo } =
+    useCanvas();
   const containerRef = React.useRef<HTMLDivElement>(null);
   const lastPointerCanvasPos = React.useRef<Point>({ x: 400, y: 300 });
 
@@ -317,21 +297,11 @@ export function CanvasBoard() {
   // Images: drag-and-drop from the desktop + Ctrl+V paste
   // ---------------------------------------------------------------------
 
-  async function insertImageFile(file: File, point: Point) {
-    try {
-      const { src, width, height } = await readImageFile(file);
-      const element = createImageElement(makeId(), point.x - width / 2, point.y - height / 2, nowISO(), getNextZIndex(elements), src, width, height);
-      addAndSelect(element);
-    } catch {
-      toast.error("Não foi possível carregar essa imagem.");
-    }
-  }
-
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     const point = toCanvasPoint(e.clientX, e.clientY);
     const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/"));
-    files.forEach((file) => insertImageFile(file, point));
+    files.forEach((file) => addImage(file, point));
   }
 
   function handlePaste(e: React.ClipboardEvent) {
@@ -340,7 +310,7 @@ export function CanvasBoard() {
     e.preventDefault();
     for (const item of items) {
       const file = item.getAsFile();
-      if (file) insertImageFile(file, lastPointerCanvasPos.current);
+      if (file) addImage(file, lastPointerCanvasPos.current);
     }
   }
 

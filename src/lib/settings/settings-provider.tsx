@@ -3,12 +3,11 @@
 import * as React from "react";
 import { settingsReducer, type SettingsAction } from "./settings-reducer";
 import { DEFAULT_SETTINGS, type Settings } from "./types";
-import { usePersistentReducer } from "@/lib/persistent-reducer";
+import { useSupabaseReducer } from "@/lib/supabase/use-supabase-reducer";
+import { fetchSettings, upsertSettings } from "./repository";
 
-const STORAGE_KEY = "erp-settings-v1";
-
-function seededState(): Settings {
-  return DEFAULT_SETTINGS;
+async function sync(userId: string, _previous: Settings, next: Settings): Promise<void> {
+  await upsertSettings(userId, next);
 }
 
 type SettingsContextValue = {
@@ -20,11 +19,12 @@ type SettingsContextValue = {
 const SettingsContext = React.createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, dispatch] = usePersistentReducer<Settings, SettingsAction>(
+  const [settings, dispatch] = useSupabaseReducer<Settings, SettingsAction>(
     settingsReducer,
-    seededState,
-    STORAGE_KEY,
-    (hydrated) => ({ type: "HYDRATE" as const, state: hydrated })
+    DEFAULT_SETTINGS,
+    (hydrated) => ({ type: "HYDRATE" as const, state: hydrated }),
+    fetchSettings,
+    sync
   );
 
   const value = React.useMemo<SettingsContextValue>(

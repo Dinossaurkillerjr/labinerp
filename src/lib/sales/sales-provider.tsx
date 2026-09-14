@@ -2,14 +2,13 @@
 
 import * as React from "react";
 import type { Discount, Sale, SalesChannel } from "./types";
-import { salesReducer, type SalesAction, type SalesState } from "./sales-reducer";
-import { SEED_SALES } from "./seed";
+import { salesReducer, EMPTY_SALES_STATE, type SalesAction, type SalesState } from "./sales-reducer";
 import { buildIncomeTransactionInput, reconcileShippingExpense } from "./calculations";
 import { useFinance } from "@/lib/finance/finance-provider";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
-import { usePersistentReducer } from "@/lib/persistent-reducer";
-
-const STORAGE_KEY = "erp-sales-v1";
+import { useSupabaseReducer } from "@/lib/supabase/use-supabase-reducer";
+import { diffById } from "@/lib/supabase/diff-collection";
+import { deleteSales, fetchSales, upsertSales } from "./repository";
 
 function makeId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -20,8 +19,13 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
-function seededState(): SalesState {
-  return { sales: SEED_SALES };
+async function fetchInitial(userId: string): Promise<SalesState> {
+  return { sales: await fetchSales(userId) };
+}
+
+async function sync(userId: string, previous: SalesState, next: SalesState): Promise<void> {
+  const { inserted, updated, deletedIds } = diffById(previous.sales, next.sales);
+  await Promise.all([upsertSales(userId, [...inserted, ...updated]), deleteSales(userId, deletedIds)]);
 }
 
 export type NewSaleInput = {
@@ -49,11 +53,12 @@ type SalesContextValue = {
 const SalesContext = React.createContext<SalesContextValue | null>(null);
 
 export function SalesProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = usePersistentReducer<SalesState, SalesAction>(
+  const [state, dispatch] = useSupabaseReducer<SalesState, SalesAction>(
     salesReducer,
-    seededState,
-    STORAGE_KEY,
-    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState })
+    EMPTY_SALES_STATE,
+    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState }),
+    fetchInitial,
+    sync
   );
   const { addTransaction, updateTransaction, deleteTransaction } = useFinance();
   const { getProduct } = useCatalog();

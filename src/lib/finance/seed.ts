@@ -1,7 +1,8 @@
-import type { Category, RecurringRule, Transaction } from "./types";
+import type { Category, InstallmentGroup, RecurringRule, Transaction } from "./types";
 
-// Seed data used only when the local store is empty (first run). This gives the
-// Financeiro module something real to show without requiring a backend yet.
+// Sample data for local development only — inserted by scripts/seed-dev-data.ts
+// against a dev/local Supabase project, never used by the app itself (a real
+// account always starts empty; see app/(app)/layout.tsx's providers).
 
 function iso(daysFromNow: number): string {
   const date = new Date();
@@ -139,6 +140,16 @@ export const SEED_INSTALLMENT_TRANSACTIONS: Transaction[] = (() => {
     installment: { number: index + 1, total: 3 },
   }));
 })();
+
+export const SEED_INSTALLMENT_GROUPS: InstallmentGroup[] = [
+  {
+    id: "seed-group-1",
+    description: "Máquina de costura — 3x",
+    totalAmount: 60000,
+    installmentsCount: 3,
+    createdAt: now,
+  },
+];
 
 export const SEED_RECURRING_RULES: RecurringRule[] = [
   {

@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { NotificationsMenu } from "@/components/layout/notifications-menu";
 import { QuickActionButton } from "@/components/layout/quick-action-button";
+import { UserMenu } from "@/components/layout/user-menu";
 import { useUI } from "@/components/providers/ui-provider";
 import { NAV_ITEMS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -82,6 +83,7 @@ export function Header() {
 
         <NotificationsMenu />
         <QuickActionButton />
+        <UserMenu />
       </div>
     </header>
   );

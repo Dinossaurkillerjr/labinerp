@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import type { ChecklistItem, Task, TaskPriority, TaskStatus } from "./types";
-import { tasksReducer, type TasksAction, type TasksState } from "./tasks-reducer";
-import { usePersistentReducer } from "@/lib/persistent-reducer";
-import { SEED_TASKS } from "./seed";
-
-const STORAGE_KEY = "erp-tasks-v1";
+import { tasksReducer, EMPTY_TASKS_STATE, type TasksAction, type TasksState } from "./tasks-reducer";
+import { useSupabaseReducer } from "@/lib/supabase/use-supabase-reducer";
+import { diffById } from "@/lib/supabase/diff-collection";
+import { deleteTasks, fetchTasks, upsertTasks } from "./repository";
 
 function makeId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -17,8 +16,13 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
-function seededState(): TasksState {
-  return { tasks: SEED_TASKS };
+async function fetchInitial(userId: string): Promise<TasksState> {
+  return { tasks: await fetchTasks(userId) };
+}
+
+async function sync(userId: string, previous: TasksState, next: TasksState): Promise<void> {
+  const { inserted, updated, deletedIds } = diffById(previous.tasks, next.tasks);
+  await Promise.all([upsertTasks(userId, [...inserted, ...updated]), deleteTasks(userId, deletedIds)]);
 }
 
 export type NewTaskInput = {
@@ -42,11 +46,12 @@ type TasksContextValue = {
 const TasksContext = React.createContext<TasksContextValue | null>(null);
 
 export function TasksProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = usePersistentReducer<TasksState, TasksAction>(
+  const [state, dispatch] = useSupabaseReducer<TasksState, TasksAction>(
     tasksReducer,
-    seededState,
-    STORAGE_KEY,
-    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState })
+    EMPTY_TASKS_STATE,
+    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState }),
+    fetchInitial,
+    sync
   );
 
   const value = React.useMemo<TasksContextValue>(

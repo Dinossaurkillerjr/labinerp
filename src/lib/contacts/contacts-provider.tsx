@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import type { Contact, ContactStatus } from "./types";
-import { contactsReducer, type ContactsAction, type ContactsState } from "./contacts-reducer";
-import { SEED_CONTACTS } from "./seed";
-import { usePersistentReducer } from "@/lib/persistent-reducer";
-
-const STORAGE_KEY = "erp-contacts-v1";
+import { contactsReducer, EMPTY_CONTACTS_STATE, type ContactsAction, type ContactsState } from "./contacts-reducer";
+import { useSupabaseReducer } from "@/lib/supabase/use-supabase-reducer";
+import { diffById } from "@/lib/supabase/diff-collection";
+import { deleteContacts, fetchContacts, upsertContacts } from "./repository";
 
 function makeId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -17,8 +16,13 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
-function seededState(): ContactsState {
-  return { contacts: SEED_CONTACTS };
+async function fetchInitial(userId: string): Promise<ContactsState> {
+  return { contacts: await fetchContacts(userId) };
+}
+
+async function sync(userId: string, previous: ContactsState, next: ContactsState): Promise<void> {
+  const { inserted, updated, deletedIds } = diffById(previous.contacts, next.contacts);
+  await Promise.all([upsertContacts(userId, [...inserted, ...updated]), deleteContacts(userId, deletedIds)]);
 }
 
 export type NewContactInput = {
@@ -40,11 +44,12 @@ type ContactsContextValue = {
 const ContactsContext = React.createContext<ContactsContextValue | null>(null);
 
 export function ContactsProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = usePersistentReducer<ContactsState, ContactsAction>(
+  const [state, dispatch] = useSupabaseReducer<ContactsState, ContactsAction>(
     contactsReducer,
-    seededState,
-    STORAGE_KEY,
-    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState })
+    EMPTY_CONTACTS_STATE,
+    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState }),
+    fetchInitial,
+    sync
   );
 
   const value = React.useMemo<ContactsContextValue>(() => {

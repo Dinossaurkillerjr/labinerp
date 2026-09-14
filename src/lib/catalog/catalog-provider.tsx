@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import type { CostComponent, Product, ProductStatus } from "./types";
-import { catalogReducer, type CatalogAction, type CatalogState } from "./catalog-reducer";
-import { SEED_PRODUCTS } from "./seed";
-import { usePersistentReducer } from "@/lib/persistent-reducer";
-
-const STORAGE_KEY = "erp-catalog-v1";
+import { catalogReducer, EMPTY_CATALOG_STATE, type CatalogAction, type CatalogState } from "./catalog-reducer";
+import { useSupabaseReducer } from "@/lib/supabase/use-supabase-reducer";
+import { diffById } from "@/lib/supabase/diff-collection";
+import { deleteProducts, fetchProducts, upsertProducts } from "./repository";
 
 function makeId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -17,8 +16,13 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
-function seededState(): CatalogState {
-  return { products: SEED_PRODUCTS };
+async function fetchInitial(userId: string): Promise<CatalogState> {
+  return { products: await fetchProducts(userId) };
+}
+
+async function sync(userId: string, previous: CatalogState, next: CatalogState): Promise<void> {
+  const { inserted, updated, deletedIds } = diffById(previous.products, next.products);
+  await Promise.all([upsertProducts(userId, [...inserted, ...updated]), deleteProducts(userId, deletedIds)]);
 }
 
 export type NewProductInput = {
@@ -41,11 +45,12 @@ type CatalogContextValue = {
 const CatalogContext = React.createContext<CatalogContextValue | null>(null);
 
 export function CatalogProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = usePersistentReducer<CatalogState, CatalogAction>(
+  const [state, dispatch] = useSupabaseReducer<CatalogState, CatalogAction>(
     catalogReducer,
-    seededState,
-    STORAGE_KEY,
-    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState })
+    EMPTY_CATALOG_STATE,
+    (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState }),
+    fetchInitial,
+    sync
   );
 
   const value = React.useMemo<CatalogContextValue>(() => {
