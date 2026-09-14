@@ -36,10 +36,10 @@ create table public.products (
 create index products_user_id_idx on public.products(user_id);
 
 alter table public.products enable row level security;
-create policy "products_select_own" on public.products for select using (auth.uid() = user_id);
-create policy "products_insert_own" on public.products for insert with check (auth.uid() = user_id);
-create policy "products_update_own" on public.products for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "products_delete_own" on public.products for delete using (auth.uid() = user_id);
+create policy "products_select_own" on public.products for select to authenticated using ((select auth.uid()) = user_id);
+create policy "products_insert_own" on public.products for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "products_update_own" on public.products for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "products_delete_own" on public.products for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- CONTATOS / CRM (lib/contacts)
@@ -62,10 +62,10 @@ create table public.contacts (
 create index contacts_user_id_idx on public.contacts(user_id);
 
 alter table public.contacts enable row level security;
-create policy "contacts_select_own" on public.contacts for select using (auth.uid() = user_id);
-create policy "contacts_insert_own" on public.contacts for insert with check (auth.uid() = user_id);
-create policy "contacts_update_own" on public.contacts for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "contacts_delete_own" on public.contacts for delete using (auth.uid() = user_id);
+create policy "contacts_select_own" on public.contacts for select to authenticated using ((select auth.uid()) = user_id);
+create policy "contacts_insert_own" on public.contacts for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "contacts_update_own" on public.contacts for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "contacts_delete_own" on public.contacts for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- FINANCEIRO (lib/finance)
@@ -95,10 +95,10 @@ create index transactions_user_id_idx on public.transactions(user_id);
 create index transactions_user_date_idx on public.transactions(user_id, date);
 
 alter table public.transactions enable row level security;
-create policy "transactions_select_own" on public.transactions for select using (auth.uid() = user_id);
-create policy "transactions_insert_own" on public.transactions for insert with check (auth.uid() = user_id);
-create policy "transactions_update_own" on public.transactions for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "transactions_delete_own" on public.transactions for delete using (auth.uid() = user_id);
+create policy "transactions_select_own" on public.transactions for select to authenticated using ((select auth.uid()) = user_id);
+create policy "transactions_insert_own" on public.transactions for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "transactions_update_own" on public.transactions for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "transactions_delete_own" on public.transactions for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- Categorias criadas pelo usuário — as categorias padrão (DEFAULT_CATEGORIES)
 -- continuam sendo uma constante da aplicação, não dados de usuário.
@@ -111,10 +111,10 @@ create table public.custom_categories (
 );
 
 alter table public.custom_categories enable row level security;
-create policy "custom_categories_select_own" on public.custom_categories for select using (auth.uid() = user_id);
-create policy "custom_categories_insert_own" on public.custom_categories for insert with check (auth.uid() = user_id);
-create policy "custom_categories_update_own" on public.custom_categories for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "custom_categories_delete_own" on public.custom_categories for delete using (auth.uid() = user_id);
+create policy "custom_categories_select_own" on public.custom_categories for select to authenticated using ((select auth.uid()) = user_id);
+create policy "custom_categories_insert_own" on public.custom_categories for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "custom_categories_update_own" on public.custom_categories for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "custom_categories_delete_own" on public.custom_categories for delete to authenticated using ((select auth.uid()) = user_id);
 
 create table public.installment_groups (
   id uuid primary key,
@@ -126,10 +126,10 @@ create table public.installment_groups (
 );
 
 alter table public.installment_groups enable row level security;
-create policy "installment_groups_select_own" on public.installment_groups for select using (auth.uid() = user_id);
-create policy "installment_groups_insert_own" on public.installment_groups for insert with check (auth.uid() = user_id);
-create policy "installment_groups_update_own" on public.installment_groups for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "installment_groups_delete_own" on public.installment_groups for delete using (auth.uid() = user_id);
+create policy "installment_groups_select_own" on public.installment_groups for select to authenticated using ((select auth.uid()) = user_id);
+create policy "installment_groups_insert_own" on public.installment_groups for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "installment_groups_update_own" on public.installment_groups for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "installment_groups_delete_own" on public.installment_groups for delete to authenticated using ((select auth.uid()) = user_id);
 
 create table public.recurring_rules (
   id uuid primary key,
@@ -148,10 +148,10 @@ create table public.recurring_rules (
 );
 
 alter table public.recurring_rules enable row level security;
-create policy "recurring_rules_select_own" on public.recurring_rules for select using (auth.uid() = user_id);
-create policy "recurring_rules_insert_own" on public.recurring_rules for insert with check (auth.uid() = user_id);
-create policy "recurring_rules_update_own" on public.recurring_rules for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "recurring_rules_delete_own" on public.recurring_rules for delete using (auth.uid() = user_id);
+create policy "recurring_rules_select_own" on public.recurring_rules for select to authenticated using ((select auth.uid()) = user_id);
+create policy "recurring_rules_insert_own" on public.recurring_rules for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "recurring_rules_update_own" on public.recurring_rules for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "recurring_rules_delete_own" on public.recurring_rules for delete to authenticated using ((select auth.uid()) = user_id);
 
 create table public.month_closings (
   id text not null, -- "yyyy-MM"
@@ -163,10 +163,10 @@ create table public.month_closings (
 );
 
 alter table public.month_closings enable row level security;
-create policy "month_closings_select_own" on public.month_closings for select using (auth.uid() = user_id);
-create policy "month_closings_insert_own" on public.month_closings for insert with check (auth.uid() = user_id);
-create policy "month_closings_update_own" on public.month_closings for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "month_closings_delete_own" on public.month_closings for delete using (auth.uid() = user_id);
+create policy "month_closings_select_own" on public.month_closings for select to authenticated using ((select auth.uid()) = user_id);
+create policy "month_closings_insert_own" on public.month_closings for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "month_closings_update_own" on public.month_closings for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "month_closings_delete_own" on public.month_closings for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- VENDAS (lib/sales)
@@ -197,10 +197,10 @@ create table public.sales (
 create index sales_user_id_idx on public.sales(user_id);
 
 alter table public.sales enable row level security;
-create policy "sales_select_own" on public.sales for select using (auth.uid() = user_id);
-create policy "sales_insert_own" on public.sales for insert with check (auth.uid() = user_id);
-create policy "sales_update_own" on public.sales for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "sales_delete_own" on public.sales for delete using (auth.uid() = user_id);
+create policy "sales_select_own" on public.sales for select to authenticated using ((select auth.uid()) = user_id);
+create policy "sales_insert_own" on public.sales for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "sales_update_own" on public.sales for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "sales_delete_own" on public.sales for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- TAREFAS (lib/tasks)
@@ -227,10 +227,10 @@ create table public.tasks (
 create index tasks_user_id_idx on public.tasks(user_id);
 
 alter table public.tasks enable row level security;
-create policy "tasks_select_own" on public.tasks for select using (auth.uid() = user_id);
-create policy "tasks_insert_own" on public.tasks for insert with check (auth.uid() = user_id);
-create policy "tasks_update_own" on public.tasks for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "tasks_delete_own" on public.tasks for delete using (auth.uid() = user_id);
+create policy "tasks_select_own" on public.tasks for select to authenticated using ((select auth.uid()) = user_id);
+create policy "tasks_insert_own" on public.tasks for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "tasks_update_own" on public.tasks for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "tasks_delete_own" on public.tasks for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- CANVAS (lib/canvas)
@@ -256,10 +256,10 @@ create table public.canvas_elements (
 create index canvas_elements_user_id_idx on public.canvas_elements(user_id);
 
 alter table public.canvas_elements enable row level security;
-create policy "canvas_elements_select_own" on public.canvas_elements for select using (auth.uid() = user_id);
-create policy "canvas_elements_insert_own" on public.canvas_elements for insert with check (auth.uid() = user_id);
-create policy "canvas_elements_update_own" on public.canvas_elements for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "canvas_elements_delete_own" on public.canvas_elements for delete using (auth.uid() = user_id);
+create policy "canvas_elements_select_own" on public.canvas_elements for select to authenticated using ((select auth.uid()) = user_id);
+create policy "canvas_elements_insert_own" on public.canvas_elements for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "canvas_elements_update_own" on public.canvas_elements for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "canvas_elements_delete_own" on public.canvas_elements for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- Bucket privado para imagens coladas/arrastadas no Canvas.
 insert into storage.buckets (id, name, public)
@@ -268,13 +268,14 @@ on conflict (id) do nothing;
 
 -- Cada usuário só acessa arquivos sob o prefixo <user_id>/... do próprio bucket.
 create policy "canvas_images_select_own" on storage.objects for select
-  using (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = auth.uid()::text);
+  to authenticated using (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy "canvas_images_insert_own" on storage.objects for insert
-  with check (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = auth.uid()::text);
+  to authenticated with check (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy "canvas_images_update_own" on storage.objects for update
-  using (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = auth.uid()::text);
+  to authenticated using (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy "canvas_images_delete_own" on storage.objects for delete
-  using (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = auth.uid()::text);
+  to authenticated using (bucket_id = 'canvas-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- ============================================================================
 -- CONFIGURAÇÕES (lib/settings) — um objeto por usuário, não uma coleção.
@@ -300,10 +301,10 @@ create table public.settings (
 );
 
 alter table public.settings enable row level security;
-create policy "settings_select_own" on public.settings for select using (auth.uid() = user_id);
-create policy "settings_insert_own" on public.settings for insert with check (auth.uid() = user_id);
-create policy "settings_update_own" on public.settings for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "settings_delete_own" on public.settings for delete using (auth.uid() = user_id);
+create policy "settings_select_own" on public.settings for select to authenticated using ((select auth.uid()) = user_id);
+create policy "settings_insert_own" on public.settings for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "settings_update_own" on public.settings for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "settings_delete_own" on public.settings for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- PLANEJAMENTO (lib/planning)
@@ -322,10 +323,10 @@ create table public.profit_allocations (
 );
 
 alter table public.profit_allocations enable row level security;
-create policy "profit_allocations_select_own" on public.profit_allocations for select using (auth.uid() = user_id);
-create policy "profit_allocations_insert_own" on public.profit_allocations for insert with check (auth.uid() = user_id);
-create policy "profit_allocations_update_own" on public.profit_allocations for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "profit_allocations_delete_own" on public.profit_allocations for delete using (auth.uid() = user_id);
+create policy "profit_allocations_select_own" on public.profit_allocations for select to authenticated using ((select auth.uid()) = user_id);
+create policy "profit_allocations_insert_own" on public.profit_allocations for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "profit_allocations_update_own" on public.profit_allocations for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "profit_allocations_delete_own" on public.profit_allocations for delete to authenticated using ((select auth.uid()) = user_id);
 
 create table public.category_budgets (
   category_id text not null,
@@ -336,7 +337,7 @@ create table public.category_budgets (
 );
 
 alter table public.category_budgets enable row level security;
-create policy "category_budgets_select_own" on public.category_budgets for select using (auth.uid() = user_id);
-create policy "category_budgets_insert_own" on public.category_budgets for insert with check (auth.uid() = user_id);
-create policy "category_budgets_update_own" on public.category_budgets for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "category_budgets_delete_own" on public.category_budgets for delete using (auth.uid() = user_id);
+create policy "category_budgets_select_own" on public.category_budgets for select to authenticated using ((select auth.uid()) = user_id);
+create policy "category_budgets_insert_own" on public.category_budgets for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "category_budgets_update_own" on public.category_budgets for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "category_budgets_delete_own" on public.category_budgets for delete to authenticated using ((select auth.uid()) = user_id);
