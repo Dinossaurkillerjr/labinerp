@@ -66,13 +66,23 @@ export function SalesPanel() {
     });
   }
 
+  function openEdit(sale: Sale) {
+    openDrawer({
+      title: "Editar venda",
+      description: "Alterações são refletidas nos lançamentos do Financeiro — nada é duplicado.",
+      content: <SaleForm sale={sale} onDone={closeDrawer} />,
+    });
+  }
+
   function handleDelete(sale: Sale) {
     confirm({
       title: "Excluir venda?",
-      description: "A venda e o lançamento de receita correspondente no Financeiro serão removidos. Essa ação não pode ser desfeita.",
+      description: sale.shippingTransactionId
+        ? "A venda, o lançamento de receita e a despesa de frete correspondentes no Financeiro serão removidos. Essa ação não pode ser desfeita."
+        : "A venda e o lançamento de receita correspondente no Financeiro serão removidos. Essa ação não pode ser desfeita.",
       onConfirm: () => {
         deleteSale(sale.id);
-        toast.success("Venda excluída — o lançamento financeiro correspondente também foi removido.");
+        toast.success("Venda excluída — os lançamentos financeiros correspondentes também foram removidos.");
       },
     });
   }
@@ -122,6 +132,7 @@ export function SalesPanel() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => openEdit(row)}>Editar</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onSelect={() => handleDelete(row)}>
               Excluir
             </DropdownMenuItem>

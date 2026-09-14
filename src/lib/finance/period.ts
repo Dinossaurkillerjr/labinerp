@@ -32,3 +32,14 @@ export function recentMonthIds(count: number): string[] {
     return date.toISOString().slice(0, 7);
   });
 }
+
+/** Generates `count` month ids ending at `monthId` (inclusive), oldest first — used by
+ *  Planejamento to build history/references relative to whichever month the user is viewing. */
+export function monthIdsUpTo(monthId: string, count: number): string[] {
+  const [year, month] = monthId.split("-").map(Number);
+  return Array.from({ length: count }, (_, i) => {
+    const offset = count - 1 - i;
+    const date = new Date(Date.UTC(year, month - 1 - offset, 1));
+    return date.toISOString().slice(0, 7);
+  });
+}

@@ -22,6 +22,7 @@ export function buildIncomeTransactionInput(input: {
   totalAmount: number;
   productName: string;
   channel: string;
+  saleId?: string;
 }): NewTransactionInput {
   return {
     type: "income",
@@ -31,7 +32,74 @@ export function buildIncomeTransactionInput(input: {
     description: `Venda — ${input.productName} (${input.channel})`,
     paymentSource: "conta_marca",
     status: "concluido",
+    relations: input.saleId ? { saleId: input.saleId } : undefined,
   };
+}
+
+/**
+ * O cliente pagar R$0 de frete (frete grátis) não significa que a marca teve
+ * custo R$0 — o custo real vira uma despesa própria (categoria "frete", já
+ * tratada como custo/COGS pelo Financeiro), nunca um abatimento da receita.
+ * A venda continua sendo uma única receita; isto é sempre uma segunda
+ * transação, de despesa, vinculada à venda via relations.saleId.
+ */
+export function buildShippingExpenseTransactionInput(input: {
+  saleId: string;
+  date: string;
+  shippingCost: number;
+  productName: string;
+  /** Se o frete já foi pago no momento do registro. Default: pendente. */
+  settled?: boolean;
+}): NewTransactionInput {
+  return {
+    type: "expense",
+    amount: input.shippingCost,
+    date: input.date,
+    category: "frete", // Category["id"] from lib/finance/categories.ts (group "custo")
+    description: `Frete — ${input.productName}`,
+    paymentSource: "conta_marca",
+    status: input.settled ? "concluido" : "pendente",
+    dueDate: input.settled ? undefined : input.date,
+    relations: { saleId: input.saleId },
+  };
+}
+
+export type ShippingExpenseReconciliation =
+  | { action: "none" }
+  | { action: "create"; input: NewTransactionInput }
+  | { action: "update"; transactionId: string; input: NewTransactionInput }
+  | { action: "delete"; transactionId: string };
+
+/**
+ * Decide o que fazer com a despesa de frete de uma venda, dado o custo real
+ * atual e a despesa já vinculada (se houver) — nunca cria uma segunda despesa
+ * quando já existe uma (só atualiza), e remove/desvincula quando o custo é
+ * zerado. Usado tanto na criação quanto na edição da venda (sales-provider),
+ * então "editar sem duplicar" e "remover o custo" têm uma única definição.
+ */
+export function reconcileShippingExpense(params: {
+  saleId: string;
+  date: string;
+  shippingCost: number;
+  productName: string;
+  existingShippingTransactionId?: string;
+}): ShippingExpenseReconciliation {
+  const { saleId, date, shippingCost, productName, existingShippingTransactionId } = params;
+
+  if (shippingCost > 0 && existingShippingTransactionId) {
+    return {
+      action: "update",
+      transactionId: existingShippingTransactionId,
+      input: buildShippingExpenseTransactionInput({ saleId, date, shippingCost, productName }),
+    };
+  }
+  if (shippingCost > 0 && !existingShippingTransactionId) {
+    return { action: "create", input: buildShippingExpenseTransactionInput({ saleId, date, shippingCost, productName }) };
+  }
+  if (shippingCost <= 0 && existingShippingTransactionId) {
+    return { action: "delete", transactionId: existingShippingTransactionId };
+  }
+  return { action: "none" };
 }
 
 /**

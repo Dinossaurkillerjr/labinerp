@@ -16,6 +16,7 @@ import { FinanceKpis } from "@/components/finance/finance-kpis";
 import { ResultadoPanel } from "@/components/finance/resultado-panel";
 import { CashflowPanel } from "@/components/finance/cashflow-panel";
 import { FinanceComparisonPanel } from "@/components/finance/finance-comparison-panel";
+import { PlanningPanel } from "@/components/finance/planning-panel";
 import { TransactionsPanel } from "@/components/finance/transactions-panel";
 import { RecurringRulesPanel } from "@/components/finance/recurring-rules-panel";
 import { MonthClosingPanel } from "@/components/finance/month-closing-panel";
@@ -67,6 +68,7 @@ export default function FinanceiroPage() {
           <TabsTrigger value="resultado">Resultado</TabsTrigger>
           <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
           <TabsTrigger value="fluxo">Fluxo de caixa</TabsTrigger>
+          <TabsTrigger value="planejamento">Planejamento</TabsTrigger>
           <TabsTrigger value="recorrencias">Recorrências</TabsTrigger>
           <TabsTrigger value="fechamento">Fechamento mensal</TabsTrigger>
         </TabsList>
@@ -82,6 +84,9 @@ export default function FinanceiroPage() {
         </TabsContent>
         <TabsContent value="fluxo" className="pt-4">
           <CashflowPanel monthId={monthId} />
+        </TabsContent>
+        <TabsContent value="planejamento" className="pt-4">
+          <PlanningPanel monthId={monthId} />
         </TabsContent>
         <TabsContent value="recorrencias" className="pt-4">
           <RecurringRulesPanel />

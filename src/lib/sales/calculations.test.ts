@@ -3,6 +3,8 @@ import {
   calculateSaleCost,
   calculateSaleProfit,
   buildIncomeTransactionInput,
+  buildShippingExpenseTransactionInput,
+  reconcileShippingExpense,
   calculateDiscountAmount,
   calculateShippingCharged,
   calculateSaleBreakdown,
@@ -51,6 +53,104 @@ describe("buildIncomeTransactionInput", () => {
     expect(input.amount).toBe(12900);
     expect(input.status).toBe("concluido");
     expect(input.description).toContain("Camiseta Oversized Preta");
+  });
+
+  it("sem saleId, não relaciona a transação a nenhuma venda", () => {
+    const input = buildIncomeTransactionInput({
+      date: "2026-09-10",
+      totalAmount: 12900,
+      productName: "Camiseta Oversized Preta",
+      channel: "Instagram",
+    });
+    expect(input.relations).toBeUndefined();
+  });
+
+  it("com saleId, relaciona a transação de receita à venda", () => {
+    const input = buildIncomeTransactionInput({
+      date: "2026-09-10",
+      totalAmount: 12900,
+      productName: "Camiseta Oversized Preta",
+      channel: "Instagram",
+      saleId: "sale-1",
+    });
+    expect(input.relations).toEqual({ saleId: "sale-1" });
+  });
+});
+
+describe("buildShippingExpenseTransactionInput", () => {
+  it("gera uma despesa na categoria frete, vinculada à venda, pendente por padrão", () => {
+    const input = buildShippingExpenseTransactionInput({
+      saleId: "sale-1",
+      date: "2026-09-10",
+      shippingCost: 3000,
+      productName: "Camiseta Oversized Preta",
+    });
+
+    expect(input.type).toBe("expense");
+    expect(input.category).toBe("frete");
+    expect(input.amount).toBe(3000);
+    expect(input.status).toBe("pendente");
+    expect(input.dueDate).toBe("2026-09-10");
+    expect(input.relations).toEqual({ saleId: "sale-1" });
+    expect(input.description).toContain("Frete");
+  });
+
+  it("quando settled, a despesa já nasce paga e sem vencimento", () => {
+    const input = buildShippingExpenseTransactionInput({
+      saleId: "sale-1",
+      date: "2026-09-10",
+      shippingCost: 3000,
+      productName: "Camiseta Oversized Preta",
+      settled: true,
+    });
+    expect(input.status).toBe("concluido");
+    expect(input.dueDate).toBeUndefined();
+  });
+});
+
+describe("reconcileShippingExpense", () => {
+  const base = { saleId: "sale-1", date: "2026-09-10", productName: "Camiseta Oversized Preta" };
+
+  it("venda sem frete: nenhuma ação é necessária", () => {
+    const result = reconcileShippingExpense({ ...base, shippingCost: 0 });
+    expect(result.action).toBe("none");
+  });
+
+  it("frete cobrado / custo real de frete, sem despesa vinculada ainda: cria a despesa", () => {
+    const result = reconcileShippingExpense({ ...base, shippingCost: 3000 });
+    expect(result).toMatchObject({ action: "create" });
+    if (result.action === "create") {
+      expect(result.input.amount).toBe(3000);
+      expect(result.input.category).toBe("frete");
+    }
+  });
+
+  it("frete grátis + custo real de R$30: ainda cria a despesa de frete (o desconto é do cliente, não da marca)", () => {
+    // calculateSaleBreakdown já garante shippingAmount=0 (cobrado do cliente);
+    // reconcileShippingExpense só olha para o custo real, que é independente.
+    const result = reconcileShippingExpense({ ...base, shippingCost: 3000 });
+    expect(result.action).toBe("create");
+  });
+
+  it("edição (R$30 → R$35) com despesa já vinculada: atualiza em vez de criar (sem duplicar)", () => {
+    const result = reconcileShippingExpense({
+      ...base,
+      shippingCost: 3500,
+      existingShippingTransactionId: "shipping-t1",
+    });
+    expect(result).toMatchObject({ action: "update", transactionId: "shipping-t1" });
+    if (result.action === "update") {
+      expect(result.input.amount).toBe(3500);
+    }
+  });
+
+  it("remoção do custo de frete com despesa já vinculada: remove/desvincula", () => {
+    const result = reconcileShippingExpense({
+      ...base,
+      shippingCost: 0,
+      existingShippingTransactionId: "shipping-t1",
+    });
+    expect(result).toEqual({ action: "delete", transactionId: "shipping-t1" });
   });
 });
 

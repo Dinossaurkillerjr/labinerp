@@ -11,6 +11,8 @@ export type Settings = {
   hiddenDashboardWidgets: string[];
   /** Contatos CRM pipeline stages — user-customizable (add/rename/remove). */
   pipelineStages: PipelineStage[];
+  /** Category["id"]s tracked in Financeiro → Planejamento. Empty means "todas". */
+  planningTrackedCategoryIds: string[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dashboardDetailed: false,
   hiddenDashboardWidgets: [],
   pipelineStages: DEFAULT_PIPELINE_STAGES,
+  planningTrackedCategoryIds: [],
 };
 
 export const DASHBOARD_WIDGETS = [

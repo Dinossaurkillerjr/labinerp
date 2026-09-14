@@ -39,6 +39,8 @@ export type Sale = {
   notes?: string;
   /** Id of the Transaction (lib/finance) created to register this sale's revenue. */
   transactionId: string;
+  /** Id of the Transaction (lib/finance) created to register the real shipping cost as an expense, if any (absent when there's no shippingCost). */
+  shippingTransactionId?: string;
   createdAt: string;
   updatedAt: string;
 };

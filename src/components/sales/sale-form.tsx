@@ -26,7 +26,7 @@ import { ContactForm } from "@/components/contacts/contact-form";
 import { calculateSaleBreakdown } from "@/lib/sales/calculations";
 import { formatCurrencyCents } from "@/lib/currency";
 import type { Contact } from "@/lib/contacts/types";
-import type { DiscountKind, SalesChannel } from "@/lib/sales/types";
+import type { DiscountKind, Sale, SalesChannel } from "@/lib/sales/types";
 
 const CHANNEL_OPTIONS: { value: SalesChannel; label: string }[] = [
   { value: "nuvemshop", label: "Nuvemshop" },
@@ -55,28 +55,37 @@ function toISODate(date?: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function SaleForm({ onDone }: { onDone: () => void }) {
+function toDate(value?: string): Date | undefined {
+  if (!value) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function SaleForm({ sale, onDone }: { sale?: Sale; onDone: () => void }) {
   const { products } = useCatalog();
   const { contacts } = useContacts();
-  const { addSale } = useSales();
+  const { addSale, updateSale } = useSales();
   const { openModal, closeModal } = useUI();
+  const isEditing = Boolean(sale);
 
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [contactId, setContactId] = React.useState("");
-  const [productId, setProductId] = React.useState("");
-  const [quantity, setQuantity] = React.useState(1);
-  const [subtotal, setSubtotal] = React.useState(0);
-  const [subtotalTouched, setSubtotalTouched] = React.useState(false);
-  const [channel, setChannel] = React.useState<SalesChannel>("nuvemshop");
-  const [notes, setNotes] = React.useState("");
+  const [date, setDate] = React.useState<Date | undefined>(toDate(sale?.date) ?? new Date());
+  const [contactId, setContactId] = React.useState(sale?.contactId ?? "");
+  const [productId, setProductId] = React.useState(sale?.productId ?? "");
+  const [quantity, setQuantity] = React.useState(sale?.quantity ?? 1);
+  // Vendas antigas (antes do breakdown estruturado) só têm totalAmount — nesse
+  // caso ele vira o próprio subtotal, exatamente como já é exibido hoje.
+  const [subtotal, setSubtotal] = React.useState(sale?.subtotal ?? sale?.totalAmount ?? 0);
+  const [subtotalTouched, setSubtotalTouched] = React.useState(isEditing);
+  const [channel, setChannel] = React.useState<SalesChannel>(sale?.channel ?? "nuvemshop");
+  const [notes, setNotes] = React.useState(sale?.notes ?? "");
 
-  const [discountKind, setDiscountKind] = React.useState<DiscountKindOption>(NO_DISCOUNT);
-  const [discountCode, setDiscountCode] = React.useState("");
-  const [discountDescription, setDiscountDescription] = React.useState("");
-  const [discountPercent, setDiscountPercent] = React.useState(10);
-  const [discountAmount, setDiscountAmount] = React.useState(0);
-  const [discountAcumulativo, setDiscountAcumulativo] = React.useState(false);
-  const [shippingCost, setShippingCost] = React.useState(0);
+  const [discountKind, setDiscountKind] = React.useState<DiscountKindOption>(sale?.discount?.kind ?? NO_DISCOUNT);
+  const [discountCode, setDiscountCode] = React.useState(sale?.discount?.code ?? "");
+  const [discountDescription, setDiscountDescription] = React.useState(sale?.discount?.description ?? "");
+  const [discountPercent, setDiscountPercent] = React.useState(sale?.discount?.percent ?? 10);
+  const [discountAmount, setDiscountAmount] = React.useState(sale?.discount?.amount ?? 0);
+  const [discountAcumulativo, setDiscountAcumulativo] = React.useState(sale?.discount?.acumulativo ?? false);
+  const [shippingCost, setShippingCost] = React.useState(sale?.shippingCost ?? 0);
 
   // Suggests a subtotal from the product's price × quantity, but never
   // overrides a value the user has already typed directly into the field.
@@ -140,7 +149,7 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
       return;
     }
 
-    addSale({
+    const payload = {
       date: toISODate(date),
       contactId: contactId || undefined,
       productId,
@@ -153,9 +162,15 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
       totalAmount: breakdown.totalAmount,
       channel,
       notes: notes || undefined,
-    });
+    };
 
-    toast.success("Venda registrada — a receita já entrou no Financeiro.");
+    if (isEditing && sale) {
+      updateSale(sale.id, payload);
+      toast.success("Venda atualizada — o Financeiro foi recalculado.");
+    } else {
+      addSale(payload);
+      toast.success("Venda registrada — a receita já entrou no Financeiro.");
+    }
     onDone();
   }
 
@@ -308,7 +323,11 @@ export function SaleForm({ onDone }: { onDone: () => void }) {
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
       </DrawerForm>
-      <DrawerFormActions onCancel={onDone} onSubmit={handleSubmit} submitLabel="Registrar venda" />
+      <DrawerFormActions
+        onCancel={onDone}
+        onSubmit={handleSubmit}
+        submitLabel={isEditing ? "Salvar alterações" : "Registrar venda"}
+      />
     </>
   );
 }

@@ -6,6 +6,7 @@ import type {
   PaymentSource,
   RecurringRule,
   Transaction,
+  TransactionRelations,
   TransactionStatus,
   TransactionType,
 } from "./types";
@@ -89,6 +90,7 @@ export type NewTransactionInput = {
   status: TransactionStatus;
   dueDate?: string;
   notes?: string;
+  relations?: TransactionRelations;
 };
 
 export type NewInstallmentInput = Omit<NewTransactionInput, "amount" | "status"> & {

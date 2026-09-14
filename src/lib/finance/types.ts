@@ -44,6 +44,8 @@ export type TransactionRelations = {
   installmentGroupId?: string;
   /** Id of the recurring rule that generated this transaction, if any. */
   recurrenceId?: string;
+  /** Id of the Sale (lib/sales) this transaction was generated from, if any — e.g. the revenue or the shipping-cost expense of a sale. */
+  saleId?: string;
 };
 
 export type EditHistoryEntry = {

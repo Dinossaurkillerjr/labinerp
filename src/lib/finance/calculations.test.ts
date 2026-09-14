@@ -72,6 +72,19 @@ describe("calculateResultado", () => {
     const resultado = calculateResultado(transactions);
     expect(resultado.receita).toBe(0);
   });
+
+  it("custo real de frete de uma venda (frete grátis para o cliente) reduz o lucro, mesmo com receita cheia", () => {
+    // R$148 de produto, frete grátis para o cliente, custo real de frete R$30 para a marca.
+    const transactions = [
+      makeTransaction({ type: "income", amount: 14800, category: "venda" }),
+      makeTransaction({ type: "expense", amount: 3000, category: "frete", status: "concluido" }),
+    ];
+
+    const resultado = calculateResultado(transactions);
+    expect(resultado.receita).toBe(14800); // a venda continua sendo uma única receita
+    expect(resultado.custoProdutos).toBe(3000); // frete é categoria "custo"
+    expect(resultado.lucroLiquido).toBe(11800);
+  });
 });
 
 describe("calculateCapital", () => {
@@ -124,6 +137,31 @@ describe("calculateCashFlow", () => {
     expect(cashFlow.aReceber).toBe(1000);
     expect(cashFlow.aPagar).toBe(400);
     expect(cashFlow.caixaProjetado).toBe(0 + 1000 - 400);
+  });
+
+  it("custo de frete pendente não reduz o caixa realizado, só aparece em a pagar", () => {
+    const transactions = [
+      makeTransaction({ type: "income", amount: 14800, category: "venda", status: "concluido", date: "2026-01-05" }),
+      makeTransaction({ type: "expense", amount: 3000, category: "frete", status: "pendente", date: "2026-01-05" }),
+    ];
+
+    const cashFlow = calculateCashFlow(transactions, { start: "2026-01-01", end: "2026-01-31" }, 0);
+    expect(cashFlow.saidas).toBe(0); // ainda não pago — não sai do caixa realizado
+    expect(cashFlow.saldoFinal).toBe(14800);
+    expect(cashFlow.aPagar).toBe(3000);
+    expect(cashFlow.caixaProjetado).toBe(14800 - 3000);
+  });
+
+  it("depois de pago, o custo de frete sai do caixa realizado", () => {
+    const transactions = [
+      makeTransaction({ type: "income", amount: 14800, category: "venda", status: "concluido", date: "2026-01-05" }),
+      makeTransaction({ type: "expense", amount: 3000, category: "frete", status: "concluido", date: "2026-01-06" }),
+    ];
+
+    const cashFlow = calculateCashFlow(transactions, { start: "2026-01-01", end: "2026-01-31" }, 0);
+    expect(cashFlow.saidas).toBe(3000);
+    expect(cashFlow.saldoFinal).toBe(14800 - 3000);
+    expect(cashFlow.aPagar).toBe(0);
   });
 });
 

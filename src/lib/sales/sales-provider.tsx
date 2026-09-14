@@ -4,7 +4,7 @@ import * as React from "react";
 import type { Discount, Sale, SalesChannel } from "./types";
 import { salesReducer, type SalesAction, type SalesState } from "./sales-reducer";
 import { SEED_SALES } from "./seed";
-import { buildIncomeTransactionInput } from "./calculations";
+import { buildIncomeTransactionInput, reconcileShippingExpense } from "./calculations";
 import { useFinance } from "@/lib/finance/finance-provider";
 import { useCatalog } from "@/lib/catalog/catalog-provider";
 import { usePersistentReducer } from "@/lib/persistent-reducer";
@@ -42,6 +42,7 @@ export type NewSaleInput = {
 type SalesContextValue = {
   sales: Sale[];
   addSale: (input: NewSaleInput) => Sale;
+  updateSale: (id: string, input: NewSaleInput) => void;
   deleteSale: (id: string) => void;
 };
 
@@ -54,7 +55,7 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
     STORAGE_KEY,
     (hydratedState) => ({ type: "HYDRATE" as const, state: hydratedState })
   );
-  const { addTransaction, deleteTransaction } = useFinance();
+  const { addTransaction, updateTransaction, deleteTransaction } = useFinance();
   const { getProduct } = useCatalog();
 
   const value = React.useMemo<SalesContextValue>(
@@ -64,6 +65,7 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
       addSale(input: NewSaleInput): Sale {
         const product = getProduct(input.productId);
         const timestamp = nowISO();
+        const saleId = makeId();
 
         // The sale never records revenue itself — it reuses the existing
         // Financeiro `addTransaction`, so "receita" keeps a single definition.
@@ -73,13 +75,27 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
             totalAmount: input.totalAmount,
             productName: product?.name ?? "Produto",
             channel: input.channel,
+            saleId,
           })
         );
 
+        // O custo real de frete nunca reduz a receita — vira uma despesa
+        // própria (categoria "frete"), só quando de fato há custo. A venda
+        // continua sendo uma única receita.
+        const reconciliation = reconcileShippingExpense({
+          saleId,
+          date: input.date,
+          shippingCost: input.shippingCost ?? 0,
+          productName: product?.name ?? "Produto",
+        });
+        const shippingTransactionId =
+          reconciliation.action === "create" ? addTransaction(reconciliation.input).id : undefined;
+
         const sale: Sale = {
-          id: makeId(),
+          id: saleId,
           ...input,
           transactionId: transaction.id,
+          shippingTransactionId,
           createdAt: timestamp,
           updatedAt: timestamp,
         };
@@ -87,13 +103,62 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
         return sale;
       },
 
+      updateSale(id: string, input: NewSaleInput) {
+        const existing = state.sales.find((s) => s.id === id);
+        if (!existing) return;
+        const product = getProduct(input.productId);
+        const timestamp = nowISO();
+
+        // Sempre atualiza a mesma transação de receita — nunca cria uma segunda.
+        updateTransaction(
+          existing.transactionId,
+          buildIncomeTransactionInput({
+            date: input.date,
+            totalAmount: input.totalAmount,
+            productName: product?.name ?? "Produto",
+            channel: input.channel,
+            saleId: id,
+          })
+        );
+
+        // Mesma decisão usada na criação — nunca duplica a despesa de frete
+        // ao editar, e desvincula/remove quando o custo é zerado.
+        const reconciliation = reconcileShippingExpense({
+          saleId: id,
+          date: input.date,
+          shippingCost: input.shippingCost ?? 0,
+          productName: product?.name ?? "Produto",
+          existingShippingTransactionId: existing.shippingTransactionId,
+        });
+
+        let shippingTransactionId = existing.shippingTransactionId;
+        if (reconciliation.action === "update") {
+          updateTransaction(reconciliation.transactionId, reconciliation.input);
+        } else if (reconciliation.action === "create") {
+          shippingTransactionId = addTransaction(reconciliation.input).id;
+        } else if (reconciliation.action === "delete") {
+          deleteTransaction(reconciliation.transactionId);
+          shippingTransactionId = undefined;
+        }
+
+        dispatch({
+          type: "UPDATE_SALE",
+          id,
+          changes: { ...input, shippingTransactionId },
+          at: timestamp,
+        });
+      },
+
       deleteSale(id: string) {
         const sale = state.sales.find((s) => s.id === id);
-        if (sale) deleteTransaction(sale.transactionId);
+        if (sale) {
+          deleteTransaction(sale.transactionId);
+          if (sale.shippingTransactionId) deleteTransaction(sale.shippingTransactionId);
+        }
         dispatch({ type: "DELETE_SALE", id });
       },
     }),
-    [state, dispatch, addTransaction, deleteTransaction, getProduct]
+    [state, dispatch, addTransaction, updateTransaction, deleteTransaction, getProduct]
   );
 
   return <SalesContext.Provider value={value}>{children}</SalesContext.Provider>;
